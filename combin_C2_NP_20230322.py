@@ -135,3 +135,11 @@ def write_output_csv(output_csv_path, lc_factors, lc_data):
             # Output data using previous definitions
             np.savetxt(f, COMB, fmt=fmt)  # delimiter=','
 
+if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        print("Usage: python combin_C2_NP_20230322.py <input_excel_file> <sheet_number>")
+        sys.exit(1)
+    input_excel_file = sys.argv[1]
+    sheet_number = int(sys.argv[2])
+    output_dir = './output'
+    generate_combination_csv(input_excel_file, sheet_number, output_dir)
