@@ -3,7 +3,7 @@ import json
 import os
 import pathlib
 import sys
-
+import itertools
 import numpy as np
 import pandas as pd
 
@@ -50,16 +50,30 @@ def read_input_csv(csv_path):
     }
     return np.genfromtxt(csv_path, delimiter=',', skip_header=header_rows, dtype=dtype)
 
+# def read_lc_data(path_input, lc_names):
+#     """Read LC data from CSV files and return as a dictionary."""
+#     lc_data = {}
+#     for lc_name in lc_names:
+#         lc_path = pathlib.Path(path_input) / f'shell_{lc_name}.csv'
+#         lc_data[lc_name] = {
+#             'data': read_input_csv(lc_path),
+#             'filePath': str(lc_path),
+#             'modifiedDate': datetime.datetime.fromtimestamp(os.path.getmtime(lc_path)).strftime("%m/%d/%Y %H:%M:%S"),
+#         }
+#     return lc_data
+
 def read_lc_data(path_input, lc_names):
-    """Read LC data from CSV files and return as a dictionary."""
-    lc_data = {}
-    for lc_name in lc_names:
-        lc_path = pathlib.Path(path_input) / f'shell_{lc_name}.csv'
-        lc_data[lc_name] = {
-            'data': read_input_csv(lc_path),
-            'filePath': str(lc_path),
-            'modifiedDate': datetime.datetime.fromtimestamp(os.path.getmtime(lc_path)).strftime("%m/%d/%Y %H:%M:%S"),
-        }
+    input_data = pd.read_excel(path_input, sheet_name=0, header=None)
+    lc_data = []
+    for lc in lc_names:
+        # lc_info = input_data[input_data[0] == lc].values.tolist()[0][2:4]
+        filtered_data = input_data[input_data[0] == lc].values.tolist()
+        if filtered_data:
+            lc_info = filtered_data[0][2:4]
+        else:
+            lc_info = ['', '']
+
+        lc_data.append(lc_info)
     return lc_data
 
 def write_output_csv(output_csv_path, lc_factors, lc_data):
@@ -135,6 +149,89 @@ def write_output_csv(output_csv_path, lc_factors, lc_data):
             # Output data using previous definitions
             np.savetxt(f, COMB, fmt=fmt)  # delimiter=','
 
+#
+# import itertools
+# import pandas as pd
+#
+# def generate_combination_csv(input_excel_file, sheet_number, output_dir):
+#     # Read input data
+#     input_data = pd.read_excel(input_excel_file, sheet_name=sheet_number, header=None)
+#     lc_names = input_data.iloc[1:, 0].values.tolist()
+#     lc_nums = input_data.iloc[1:, 1].values.tolist()
+#     lc_datas = input_data.iloc[1:, 2].values.tolist()
+#     lc_mod_dates = input_data.iloc[1:, 3].values.tolist()
+#
+#     # Remove empty values from lc_nums and lc_datas
+#     lc_nums = [str(num) if pd.notna(num) else '' for num in lc_nums]
+#     lc_datas = [data if pd.notna(data) else '' for data in lc_datas]
+#
+#     # Create LC factors dictionary
+#     lc_factors = {}
+#     for lc_name, lc_num, lc_data in zip(lc_names, lc_nums, lc_datas):
+#         if pd.notna(lc_name) and lc_name not in lc_factors:
+#             lc_factors[lc_name] = {'LC Number': lc_num, 'Data': lc_data}
+#
+#     # Generate all combinations
+#     combos = list(itertools.product(*lc_factors.values()))
+#
+#     # Write to output CSV file
+#     output_csv_path = f"{output_dir}/output.csv"
+#     with open(output_csv_path, 'w') as f:
+#         combo_strs = ['', '', '']
+#         for lc_name, lc_factor in lc_factors.items():
+#             if str(lc_name).startswith('LC (Cryostat)'):
+#                 combo_strs[0] += f"1 x [{lc_name}]"
+#                 combo_strs[1] += f"{lc_factor['Data']}"
+#                 combo_strs[2] += f"{lc_factor['LC Number']}"
+#
+#         f.write(f"Description,Data,LC Number\n")
+#         for combo in combos:
+#             combo_strs[0] += f",1 x [{combo[0]['LC Name']}]"
+#             combo_strs[1] += f",{combo[0]['Data']}"
+#             combo_strs[2] += f",{combo[0]['LC Number']}"
+#             f.write(f"{combo_strs[0]},{combo_strs[1]},{combo_strs[2]}\n")
+
+def generate_combination_csv(input_excel_file, sheet_number, output_dir):
+    # Read input data
+    input_data = pd.read_excel(input_excel_file, sheet_name=sheet_number, header=None)
+    lc_names = input_data.iloc[1:, 0].values.tolist()
+    lc_nums = input_data.iloc[1:, 1].values.tolist()
+
+    # Remove empty values from lc_nums
+    lc_nums = [str(num) if pd.notna(num) else '' for num in lc_nums]
+
+    # Create LC factors dictionary
+    lc_factors = {}
+    for lc_name, lc_num in zip(lc_names, lc_nums):
+        if pd.notna(lc_name) and lc_name not in lc_factors:
+            lc_data = read_lc_data(input_excel_file, [lc_name])[0]
+            lc_factors[lc_name] = {'LC Number': lc_num, 'Data': lc_data}
+
+    # Generate all combinations
+    combos = list(itertools.product(*lc_factors.values()))
+
+    # Write to output CSV file
+    output_csv_path = f"{output_dir}/output.csv"
+    with open(output_csv_path, 'w') as f:
+        combo_strs = ['', '', '']
+        for lc_name, lc_factor in lc_factors.items():
+            print(lc_name)
+            print(type(lc_name))
+            if str(lc_name).startswith('LC (Cryostat)'):
+                combo_strs[0] += f"1 x [{lc_name}]"
+                combo_strs[1] += f"{lc_factor['Data'][0]}"
+                combo_strs[2] += f"{lc_factor['LC Number']}"
+
+        f.write(f"Description,Data,LC Number\n")
+        for combo in combos:
+            combo_strs[0] = ''
+            combo_strs[1] = ''
+            combo_strs[2] = ''
+            for lc in combo:
+                combo_strs[0] += f",1 x [{lc['LC Name']}]"
+                combo_strs[1] += f",{lc['Data'][0]}"
+                combo_strs[2] += f",{lc['LC Number']}"
+            f.write(f"{combo_strs[0]},{combo_strs[1]},{combo_strs[2]}\n")
 
 def main():
     if len(sys.argv) < 3:
@@ -143,10 +240,11 @@ def main():
 
     input_excel_file = sys.argv[1]
     sheet_number = int(sys.argv[2])
-
     output_dir = './output'
-    generate_combo_csv(input_excel_file, sheet_number, output_dir)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
+    generate_combination_csv(input_excel_file, sheet_number, output_dir)
 
 if __name__ == '__main__':
     main()
