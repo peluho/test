@@ -14,8 +14,8 @@ timestamp = now.strftime("%Y-%m-%d")
 time_start = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
 user = os.getlogin()
 
-input_folder = '20230316_181757'
-# input_folder = '20230214_161427'
+# input_folder = '20230316_181757'
+input_folder = '20230214_161427'
 path_input = '\\\\io-ws-ccstore1\\03.Ansys\\04_pythonScripts\\02_Landa_N_Plot\\09_Output\\' + input_folder +'\\'
 pathDB = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\01_Config1\\01_DB\\'
 path_out = '\\\\io-ws-ccstore1\\03.Ansys\\04_pythonScripts\\02_Landa_N_Plot\\09_Output\\'
@@ -1149,7 +1149,7 @@ for element in elements:
                                 f'                            *cfo,.\{input_folder}\{element}\warnings,txt,,append\n')
                         f.write(f'                            *vwr\n')
                         f.write(
-                            f"                            ('{files_by_element[element][i]['old']},inp\tPICTURE missing or wrong:{q}\t{element_directories[i]}')\n")
+                            f"                            ('{files_by_element[element][0][i]},inp\tPICTURE missing or wrong:{q}\t{element_directories[i]}')\n")
                         f.write(f'                            *cfc\n')
                         f.write(f'                            *else\n')
                         f.write(
@@ -1167,7 +1167,7 @@ for element in elements:
                                 f'                            *cfo,.\{input_folder}\{element}\warnings,txt,,append\n')
                         f.write(f'                            *vwr\n')
                         f.write(
-                            f"                            ('{files_by_element[element]['old'][i]},inp\tPICTURE missing or wrong:{q}\t{element_directories[i]}')\n")
+                            f"                            ('{files_by_element[element][0][i]},inp\tPICTURE missing or wrong:{q}\t{element_directories[i]}')\n")
                         f.write(f'                            *cfc\n')
                         f.write(f'                            *else\n')
                         f.write(
@@ -1185,7 +1185,7 @@ for element in elements:
                             f'                            *cfo,.\{input_folder}\{element}\warnings,txt,,append\n')
                     f.write(f'                            *vwr\n')
                     f.write(
-                        f"                            ('{files_by_element[element]['old'][i]},inp\tPICTURE missing or wrong:{q}\t{element_directories[i]}')\n")
+                        f"                            ('{files_by_element[element][0][i]},inp\tPICTURE missing or wrong:{q}\t{element_directories[i]}')\n")
                     f.write(f'                            *cfc\n')
                     f.write(f'                            *else\n')
                     f.write(
@@ -1204,9 +1204,4 @@ for element in elements:
         f.write(f'/sys,move,{path_Macros}*.png \t {path_Macros}' + f'{input_folder}' + '\\' + f'{element}\n')
     f.close()
 sys.exit()
-
-
-
-
-
 
