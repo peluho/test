@@ -1,250 +1,272 @@
-import datetime
-import json
+import multiprocessing
+import numpy as np
 import os
-import pathlib
+import pandas as pd
 import sys
-import itertools
+import time
+
+from typing import List, Tuple
+
+# Define constants
+# INPUT_FILE = '\\\\io-ws-ccstore1.iter.org\\ANSYS_Data\\perezd\\100 CONSTRUCTION DESIGN V2\\903_ANSYS_2019\\Design_book_A2022\\Appendix_2.xlsx'
+SINGLE_LOAD_CASES_DIR = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\02_LC\\Output\\Clusters_CSV\\LC_calcs\\' # path input load cases
+# output_dir = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\03_Combinations\\07_CSV\\01_WS\\' #The output will be generated in this folder
+
+# Define a function to load the input file
 import numpy as np
 import pandas as pd
+import numexpr as ne
 
-np.set_printoptions(threshold=np.inf)
-
-def read_input_csv(csv_path):
-    """Read input CSV file and return data as a numpy array."""
-    header_rows = 9
-    dtype = {
-        'names': [
-            'ElemNo',
-            'cas',
-            'SX',
-            'SY',
-            'SXY',
-            'MX',
-            'MY',
-            'MXY',
-            'TZX',
-            'TYZ',
-            'SX_top',
-            'SX_bot',
-            'SY_top',
-            'SY_bot',
-            'Ep',
-        ],
-        'formats': [
-            'int32',
-            'int32',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-        ]
-    }
-    return np.genfromtxt(csv_path, delimiter=',', skip_header=header_rows, dtype=dtype)
-
-# def read_lc_data(path_input, lc_names):
-#     """Read LC data from CSV files and return as a dictionary."""
-#     lc_data = {}
-#     for lc_name in lc_names:
-#         lc_path = pathlib.Path(path_input) / f'shell_{lc_name}.csv'
-#         lc_data[lc_name] = {
-#             'data': read_input_csv(lc_path),
-#             'filePath': str(lc_path),
-#             'modifiedDate': datetime.datetime.fromtimestamp(os.path.getmtime(lc_path)).strftime("%m/%d/%Y %H:%M:%S"),
-#         }
-#     return lc_data
-
-def read_lc_data(path_input, lc_names):
-    input_data = pd.read_excel(path_input, sheet_name=0, header=None)
-    lc_data = []
-    for lc in lc_names:
-        # lc_info = input_data[input_data[0] == lc].values.tolist()[0][2:4]
-        filtered_data = input_data[input_data[0] == lc].values.tolist()
-        if filtered_data:
-            lc_info = filtered_data[0][2:4]
-        else:
-            lc_info = ['', '']
-
-        lc_data.append(lc_info)
-    return lc_data
-
-def write_output_csv(output_csv_path, lc_factors, lc_data):
-    """Write LC combination to CSV file."""
-    dtype = np.dtype({
-        'names': [
-            'ElemNo',
-            'cas',
-            'SX',
-            'SY',
-            'SXY',
-            'MX',
-            'MY',
-            'MXY',
-            'TZX',
-            'TYZ',
-            'SX_top',
-            'SX_bot',
-            'SY_top',
-            'SY_bot',
-            'Ep',
-        ],
-        'formats': [
-            'int32',
-            'int32',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-            'float64',
-        ],
-    })
-    with open(output_csv_path, 'w') as f:
-        combo_strs = ['', '', '']
-        for lc_name, lc_factor in lc_factors.items():
-            if lc_name.startswith('LC (Cryostat)'):
-                combo_strs[0] += f"1 x [{lc_name}]"
-                combo_strs[0] += f"1 x [{lc_names[lc_name]}]"
-            else:
-                combo_strs[0] += f"{lc_factor} x [{lc_name}]"
-                combo_strs[1] += f"{lc_factor} x [{lc_nums[lc_name]}]"
-                combo_strs[2] += f"{lc_factor:.3f} x [{lc_name}]"
-                # Add LC data to the COMB dictionary
-                lc_data = lc_datas[lc_name]
-                for key, value in lc_data.items():
-                    if key in COMB:
-                        COMB[key] += value * lc_factor
-
-            # Create string to show the combinations
-            combo_str = f"{combo_strs[0]}\n{combo_strs[1]}\n{combo_strs[2]}"
-
-            # Write to the output CSV file
-            f.write(combo_str + '\n')
-            f.write('!\n')
-            for lc_name, lc_factor in lc_factors.items():
-                lc_data = lc_datas[lc_name]
-                f.write(f"! [{lc_name}], {lc_mod_dates[lc_name]}, {lc_files[lc_name]}\n")
-            f.write('!\n')
-            for header in [column_names, column_units]:
-                header_str = '! '
-                for col_value in header:
-                    header_str += f"{col_value},"
-                f.write(f"{header_str}\n")
-
-            # Output data using previous definitions
-            np.savetxt(f, COMB, fmt=fmt)  # delimiter=','
-
-#
-# import itertools
-# import pandas as pd
-#
-# def generate_combination_csv(input_excel_file, sheet_number, output_dir):
-#     # Read input data
-#     input_data = pd.read_excel(input_excel_file, sheet_name=sheet_number, header=None)
-#     lc_names = input_data.iloc[1:, 0].values.tolist()
-#     lc_nums = input_data.iloc[1:, 1].values.tolist()
-#     lc_datas = input_data.iloc[1:, 2].values.tolist()
-#     lc_mod_dates = input_data.iloc[1:, 3].values.tolist()
-#
-#     # Remove empty values from lc_nums and lc_datas
-#     lc_nums = [str(num) if pd.notna(num) else '' for num in lc_nums]
-#     lc_datas = [data if pd.notna(data) else '' for data in lc_datas]
-#
-#     # Create LC factors dictionary
-#     lc_factors = {}
-#     for lc_name, lc_num, lc_data in zip(lc_names, lc_nums, lc_datas):
-#         if pd.notna(lc_name) and lc_name not in lc_factors:
-#             lc_factors[lc_name] = {'LC Number': lc_num, 'Data': lc_data}
-#
-#     # Generate all combinations
-#     combos = list(itertools.product(*lc_factors.values()))
-#
-#     # Write to output CSV file
-#     output_csv_path = f"{output_dir}/output.csv"
-#     with open(output_csv_path, 'w') as f:
-#         combo_strs = ['', '', '']
-#         for lc_name, lc_factor in lc_factors.items():
-#             if str(lc_name).startswith('LC (Cryostat)'):
-#                 combo_strs[0] += f"1 x [{lc_name}]"
-#                 combo_strs[1] += f"{lc_factor['Data']}"
-#                 combo_strs[2] += f"{lc_factor['LC Number']}"
-#
-#         f.write(f"Description,Data,LC Number\n")
-#         for combo in combos:
-#             combo_strs[0] += f",1 x [{combo[0]['LC Name']}]"
-#             combo_strs[1] += f",{combo[0]['Data']}"
-#             combo_strs[2] += f",{combo[0]['LC Number']}"
-#             f.write(f"{combo_strs[0]},{combo_strs[1]},{combo_strs[2]}\n")
-
-def generate_combination_csv(input_excel_file, sheet_number, output_dir):
-    # Read input data
+def load_input_file(input_excel_file, sheet_number, output_dir):
     input_data = pd.read_excel(input_excel_file, sheet_name=sheet_number, header=None)
-    lc_names = input_data.iloc[1:, 0].values.tolist()
-    lc_nums = input_data.iloc[1:, 1].values.tolist()
+    lc_coeffs = {}
+    for lc_position in range(len(input_data.columns)):
+        lc_name = input_data.iloc[0, lc_position]
+        coeffs = input_data.iloc[2:, lc_position].tolist()
+        if lc_name is not np.nan:
+            if all(pd.isna(x) or isinstance(x, (int, float, str)) for x in coeffs):
+                lc_coeffs[lc_position] = (lc_name, [])
+                for c in coeffs[1:]:
+                    if isinstance(c, str):
+                        try:
+                            lc_coeffs[lc_position][1].append(ne.evaluate(c))
+                        except:
+                            lc_coeffs[lc_position][1].append(c)
+                    elif isinstance(c, (int, float)):
+                        lc_coeffs[lc_position][1].append(c)
+            else:
+                continue
+    lc_coeffs = {k: v for k, v in lc_coeffs.items() if v[1]} # Remove empty values
+    lc_names = [lc[0] for lc in lc_coeffs.values()]
+    lc_nums = input_data.iloc[2, :].fillna(0.0).astype(float).tolist()
+    return lc_coeffs, lc_names, lc_nums
 
-    # Remove empty values from lc_nums
-    lc_nums = [str(num) if pd.notna(num) else '' for num in lc_nums]
 
-    # Create LC factors dictionary
-    lc_factors = {}
-    for lc_name, lc_num in zip(lc_names, lc_nums):
-        if pd.notna(lc_name) and lc_name not in lc_factors:
-            lc_data = read_lc_data(input_excel_file, [lc_name])[0]
-            lc_factors[lc_name] = {'LC Number': lc_num, 'Data': lc_data}
+import numexpr as ne
+import sys
 
-    # Generate all combinations
-    combos = list(itertools.product(*lc_factors.values()))
+def generate_combinations(lc_coeffs, lc_nums):
+    comb_list = []
+    for key, value in lc_coeffs.items():
+        if value[0] == 'Comb':
+            comb_list = value[1]
+            break
 
-    # Write to output CSV file
-    output_csv_path = f"{output_dir}/output.csv"
-    with open(output_csv_path, 'w') as f:
-        combo_strs = ['', '', '']
-        for lc_name, lc_factor in lc_factors.items():
-            print(lc_name)
-            print(type(lc_name))
-            if str(lc_name).startswith('LC (Cryostat)'):
-                combo_strs[0] += f"1 x [{lc_name}]"
-                combo_strs[1] += f"{lc_factor['Data'][0]}"
-                combo_strs[2] += f"{lc_factor['LC Number']}"
+    combinations = []
+    for row in range(0, len(comb_list)):
+        LCsUsed = []
+        comboStrs = ['! ', '! ', '! ']
+        combo_factors = []
+        for pos, (lc_name, coeffs) in lc_coeffs.items():
+            if lc_name == 'Comb':
+                continue
+            if not pd.isna(lc_name) and lc_name != 0 and coeffs[row] != 0 and not pd.isna(coeffs[row]):
+                if lc_name == 'LC (Cryostat)':
+                    LCsUsed.append(coeffs[row])
+                else:
+                    LCsUsed.append(lc_name)
+                combo_factors.append(coeffs[row])
+                if comboStrs[0] != '! ':
+                    for j in [0, 1, 2]:
+                        comboStrs[j] += '  +  '
+                if lc_name == 'LC (Cryostat)':
+                    lcfact = 1
+                    comboStrs[0] += '{factors} x [{comboName}]'.format(factors=lcfact,
+                                                                       comboName=lc_name)
+                    comboStrs[1] += '{factors} x [{comboNum}]'.format(factors=lcfact,
+                                                                      comboNum=lc_nums[pos])
+                    comboStrs[2] += '{evalFactors:.3f} x [{comboName}]'.format(evalFactors=lcfact,
+                                                                               comboName=coeffs[row])
+                    break  # Exit the loop
+                else:
+                    comboStrs[0] += '{factors} x [{comboName}]'.format(factors=str(coeffs[row]),
+                                                                       comboName=lc_name)
+                    comboStrs[1] += '{factors} x [{comboName}]'.format(factors=str(coeffs[row]),
+                                                                       comboName=lc_nums[pos])
+                    comboStrs[2] += '{evalFactors:.3f} x [{comboName}]'.format(evalFactors=coeffs[row],
+                                                                           comboName=lc_nums[pos])
+            # Create strings to show the combinations - Useful for debugging
+        for j in [0, 1, 2]:
+            comboStrs[j] = comboStrs[j].replace('  +  -', '  -  ')
+        comboStr = comboStrs[0] + '\n' + comboStrs[1] + '\n' + comboStrs[2]
+        if combo_factors:
+            combinations.append((comb_list[row], combo_factors, comboStrs, LCsUsed))
 
-        f.write(f"Description,Data,LC Number\n")
-        for combo in combos:
-            combo_strs[0] = ''
-            combo_strs[1] = ''
-            combo_strs[2] = ''
-            for lc in combo:
-                combo_strs[0] += f",1 x [{lc['LC Name']}]"
-                combo_strs[1] += f",{lc['Data'][0]}"
-                combo_strs[2] += f",{lc['LC Number']}"
-            f.write(f"{combo_strs[0]},{combo_strs[1]},{combo_strs[2]}\n")
+    return combinations
 
+# Define a function to load the single load cases
+# def load_single_load_cases(lc_names, lc_nums, combinations):
+#     lc_dict = dict(zip(lc_names, lc_nums))  # Merge lc_names with lc_nums
+#     single_load_cases = {}
+#     single_load_cases_changed = False  # Initialize flag for checking if single load cases have changed
+#     for combo in combinations:
+#         LCsUsed = combo[3]  # Extract LCsUsed from the combinations tuple
+#         for lc_name in LCsUsed:
+#             lc_num = lc_dict.get(lc_name)
+#             if lc_num is None and isinstance(lc_name, int):  # Check if lc_name is a number and not in lc_dict
+#                 lc_num = lc_name  # Use lc_name as lc_num
+#                 filename = 'shell_LC' + str(lc_name) + '.csv'  # Use lc_name in the filename
+#             else:
+#                 filename = f"shell_{lc_name}.csv"
+#             if lc_num is not None and lc_num != 0:
+#                 filepath = os.path.join(SINGLE_LOAD_CASES_DIR, filename)
+#                 if os.path.isfile(filepath):
+#                     print(f"Reading load case {lc_num}: {lc_name}")
+#                     lc_matrix = np.loadtxt(filepath, delimiter=',', skiprows=9)
+#                     # Check if the single load case has changed
+#                     if lc_name in single_load_cases:
+#                         if not np.array_equal(lc_matrix, single_load_cases[lc_name]):
+#                             single_load_cases_changed = True
+#                     else:
+#                         single_load_cases_changed = True
+#                     single_load_cases[lc_name] = lc_matrix
+#     # Check if any single load cases have been added or changed, and print message if they have
+#     if single_load_cases_changed:
+#         print("Single load cases have been added or changed.")
+#     return single_load_cases
+
+
+import os
+import numpy as np
+from multiprocessing import Pool
+
+SINGLE_LOAD_CASES_DIR = "SingleLoadCases"
+
+def read_single_load_case(args):
+    lc_name, lc_num, filename = args
+    filepath = os.path.join(SINGLE_LOAD_CASES_DIR, filename)
+    if os.path.isfile(filepath):
+        print(f"Reading load case {lc_num}: {lc_name}")
+        lc_matrix = np.loadtxt(filepath, delimiter=',', skiprows=9)
+        return lc_name, lc_matrix
+    else:
+        return lc_name, None
+
+def load_single_load_cases(lc_names, lc_nums, combinations):
+    print(f"lc_name={lc_names}, lc_num={lc_nums}")
+    lc_dict = dict(zip(lc_names, list(lc_nums)))  # Merge lc_names with lc_nums
+    single_load_cases = {}
+    single_load_cases_changed = False  # Initialize flag for checking if single load cases have changed
+    for combo in combinations:
+        LCsUsed = combo[3]  # Extract LCsUsed from the combinations tuple
+        for lc_name in LCsUsed:
+            lc_num = lc_dict.get(lc_name)
+            if lc_num is None and isinstance(lc_name, int):  # Check if lc_name is a number and not in lc_dict
+                lc_num = lc_name  # Use lc_name as lc_num
+                filename = 'shell_LC' + str(lc_name) + '.csv'  # Use lc_name in the filename
+            else:
+                filename = f"shell_{lc_name}.csv"
+            if lc_num is not None and lc_num != 0:
+                filepath = os.path.join(SINGLE_LOAD_CASES_DIR, filename)
+                if os.path.isfile(filepath):
+                    print(f"Reading load case {lc_num}: {lc_name}")
+                    lc_matrix = np.loadtxt(filepath, delimiter=',', skiprows=9)
+                    # Check if the single load case has changed
+                    if lc_name in single_load_cases:
+                        if not np.array_equal(lc_matrix, single_load_cases[lc_name]):
+                            single_load_cases_changed = True
+                    else:
+                        single_load_cases_changed = True
+                    single_load_cases[lc_name] = lc_matrix
+    # Check if any single load cases have been added or changed, and print message if they have
+    if single_load_cases_changed:
+        print("Single load cases have been added or changed.")
+    return single_load_cases
+
+def write_output_file(combinations, single_load_cases, output_dir):
+    # Write output file
+    with open(output_dir, 'w') as f:
+        # Write load case combinations
+        f.write("Load case combinations:\n")
+        for combo in combinations:
+            f.write(f"{combo[0]}: {combo[2]}\n")
+        f.write("\n")
+
+        # Write single load cases
+        f.write("Single load cases:\n")
+        for lc_name, lc_matrix in single_load_cases.items():
+            f.write(f"{lc_name}\n")
+            np.savetxt(f, lc_matrix, delimiter=',', fmt='%.3f')
+            f.write("\n")
+
+
+def combine_load_cases(single_load_cases, lc_coeffs):
+    combos = generate_combinations(lc_coeffs)
+    all_load_cases = {}
+
+    # Add single load cases to the combined load cases
+    for lc_name, lc_matrix in single_load_cases.items():
+        all_load_cases[lc_name] = lc_matrix
+
+    # Combine load cases using the combination factors
+    for combo in combos:
+        combo_name = f"comb_{combos.index(combo)}"
+        combo_matrix = np.zeros_like(all_load_cases[list(all_load_cases.keys())[0]])
+        for lc in combo:
+            lc_name = lc['LC Name']
+            factor = lc['Coefficients'][0]
+            lc_matrix = all_load_cases[lc_name]
+            combo_matrix += factor * lc_matrix
+        all_load_cases[combo_name] = combo_matrix
+
+    return all_load_cases
+
+
+
+# Define a function to combine the single load cases using the load combinations
+def combine_single_load_cases(single_load_cases, combo_strs):
+    for i, combo_str in enumerate(combo_strs):
+        combo_matrix = np.zeros_like(list(single_load_cases.values())[0])
+        for lc_name in combo_str.split(' + '):
+            lc_factor, lc_name = lc_name.split(' x ')
+            lc_matrix = single_load_cases[lc_name]
+            combo_matrix += float(lc_factor) * lc_matrix
+        np.savetxt(os.path.join(OUTPUT_DIR, f"combo_{i}.csv"), combo_matrix, delimiter=',')
+
+# Define the main function
 def main():
-    if len(sys.argv) < 3:
-        print("Usage: python main.py <input_excel_file> <sheet_number>")
+    if len(sys.argv) != 4:
+        print("Usage: python combin_C2_NP.py <input_excel_file> <sheet_number> <output_csv_file>")
         return
 
     input_excel_file = sys.argv[1]
     sheet_number = int(sys.argv[2])
-    output_dir = './output'
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    output_dir = sys.argv[3]
 
-    generate_combination_csv(input_excel_file, sheet_number, output_dir)
+    # Load the input file
+    print(f"Reading the {input_excel_file}...")
+    lc_coeffs, lc_names, lc_nums = load_input_file(input_excel_file, sheet_number, output_dir)
+
+    # Generate the load combinations
+    print("Generating load case combinations...")
+    combinations = generate_combinations(lc_coeffs, lc_nums)
+
+    # Load the single load cases
+    # Create a list of indices corresponding to the load cases to be used
+    lc_indices = []
+    for i, name in enumerate(lc_names):
+        if name in LCsUsed:
+            lc_indices.append(i)
+        elif isinstance(LCsUsed, int) and int(lc_nums[i]) == LCsUsed:
+            lc_indices.append(i)
+
+    # Create lists of load case names and numbers corresponding to the selected indices
+    lc_names_selected = [lc_names[i] for i in lc_indices]
+    lc_nums_selected = [lc_nums[i] for i in lc_indices]
+
+    # Load the single load cases using the selected names and numbers
+    print("Loading the single load cases...")
+    with multiprocessing.Pool() as p:
+        single_load_cases = dict(
+            p.starmap(load_single_load_cases,
+                      zip(lc_names_selected, lc_nums_selected, [combinations] * len(lc_names_selected))))
+
+    # Write the output file
+    print("Writing the output file...")
+    write_output_file(combinations, single_load_cases, output_dir, binary=True)
+
+    print("Done.")
+
 
 if __name__ == '__main__':
     main()
