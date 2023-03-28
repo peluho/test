@@ -142,13 +142,46 @@ def read_single_load_case(args):
     else:
         return lc_name, None
 
-def load_single_load_cases(lc_names, lc_nums, combinations):
+def load_single_load_cases_multi(lc_names, lc_nums, combinations):
     print(f"lc_name={lc_names}, lc_num={lc_nums}")
+    if not isinstance(lc_names, (list, tuple)) or not isinstance(lc_nums, (list, tuple)):
+        return {}
     lc_dict = dict(zip(lc_names, list(lc_nums)))  # Merge lc_names with lc_nums
     single_load_cases = {}
     single_load_cases_changed = False  # Initialize flag for checking if single load cases have changed
     for combo in combinations:
         LCsUsed = combo[3]  # Extract LCsUsed from the combinations tuple
+        for lc_name in LCsUsed:
+            lc_num = lc_dict.get(lc_name)
+            if lc_num is None and isinstance(lc_name, int):  # Check if lc_name is a number and not in lc_dict
+                lc_num = lc_name  # Use lc_name as lc_num
+                filename = 'shell_LC' + str(lc_name) + '.csv'  # Use lc_name in the filename
+            else:
+                filename = f"shell_{lc_name}.csv"
+            if lc_num is not None and lc_num != 0:
+                filepath = os.path.join(SINGLE_LOAD_CASES_DIR, filename)
+                if os.path.isfile(filepath):
+                    print(f"Reading load case {lc_num}: {lc_name}")
+                    lc_matrix = np.loadtxt(filepath, delimiter=',', skiprows=9)
+                    # Check if the single load case has changed
+                    if lc_name in single_load_cases:
+                        if not np.array_equal(lc_matrix, single_load_cases[lc_name]):
+                            single_load_cases_changed = True
+                    else:
+                        single_load_cases_changed = True
+                    single_load_cases[lc_name] = lc_matrix
+    # Check if any single load cases have been added or changed, and print message if they have
+    if single_load_cases_changed:
+        print("Single load cases have been added or changed.")
+    return single_load_cases
+
+
+def load_single_load_cases(lc_names, lc_nums, combinations):
+    lc_dict = dict(zip(lc_names, lc_nums))  # Merge lc_names with lc_nums
+    single_load_cases = {}
+    single_load_cases_changed = False  # Initialize flag for checking if single load cases have changed
+    for combo in combinations:
+        LCsUsed = combo[1]  # Extract LCsUsed from the combinations tuple
         for lc_name in LCsUsed:
             lc_num = lc_dict.get(lc_name)
             if lc_num is None and isinstance(lc_name, int):  # Check if lc_name is a number and not in lc_dict
@@ -243,27 +276,30 @@ def main():
 
     # Load the single load cases
     # Create a list of indices corresponding to the load cases to be used
-    lc_indices = []
-    for i, name in enumerate(lc_names):
-        if name in LCsUsed:
-            lc_indices.append(i)
-        elif isinstance(LCsUsed, int) and int(lc_nums[i]) == LCsUsed:
-            lc_indices.append(i)
-
-    # Create lists of load case names and numbers corresponding to the selected indices
-    lc_names_selected = [lc_names[i] for i in lc_indices]
-    lc_nums_selected = [lc_nums[i] for i in lc_indices]
+    # lc_indices = []
+    # for i, name in enumerate(lc_names):
+    #     if name in LCsUsed:
+    #         lc_indices.append(i)
+    #     elif isinstance(LCsUsed, int) and int(lc_nums[i]) == LCsUsed:
+    #         lc_indices.append(i)
+    #
+    # # Create lists of load case names and numbers corresponding to the selected indices
+    # lc_names_selected = [lc_names[i] for i in lc_indices]
+    # lc_nums_selected = [lc_nums[i] for i in lc_indices]
 
     # Load the single load cases using the selected names and numbers
     print("Loading the single load cases...")
-    with multiprocessing.Pool() as p:
-        single_load_cases = dict(
-            p.starmap(load_single_load_cases,
-                      zip(lc_names_selected, lc_nums_selected, [combinations] * len(lc_names_selected))))
+    # for combo in combinations:
+    #     print(combo[3])
+    #     with multiprocessing.Pool() as p:
+    #         single_load_cases = dict(
+    #             p.starmap(load_single_load_cases,
+    #                       zip(lc_names_selected, lc_nums_selected, combo[3])))
+    load_single_load_cases(lc_names,lc_nums,combinations)
 
     # Write the output file
-    print("Writing the output file...")
-    write_output_file(combinations, single_load_cases, output_dir, binary=True)
+    # print("Writing the output file...")
+    # write_output_file(combinations, single_load_cases, output_dir, binary=True)
 
     print("Done.")
 
