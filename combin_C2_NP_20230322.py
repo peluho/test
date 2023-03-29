@@ -2,10 +2,11 @@ import multiprocessing
 import numpy as np
 import os
 import pandas as pd
-import sys
 import time
-
 from typing import List, Tuple
+import numexpr as ne
+import sys
+
 
 # Define constants
 # INPUT_FILE = '\\\\io-ws-ccstore1.iter.org\\ANSYS_Data\\perezd\\100 CONSTRUCTION DESIGN V2\\903_ANSYS_2019\\Design_book_A2022\\Appendix_2.xlsx'
@@ -13,10 +14,6 @@ SINGLE_LOAD_CASES_DIR = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\02_LC\
 # output_dir = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\03_Combinations\\07_CSV\\01_WS\\' #The output will be generated in this folder
 
 # Define a function to load the input file
-import numpy as np
-import pandas as pd
-import numexpr as ne
-
 def load_input_file(input_excel_file, sheet_number, output_dir):
     input_data = pd.read_excel(input_excel_file, sheet_name=sheet_number, header=None)
     lc_coeffs = {}
@@ -42,8 +39,6 @@ def load_input_file(input_excel_file, sheet_number, output_dir):
     return lc_coeffs, lc_names, lc_nums
 
 
-import numexpr as ne
-import sys
 
 def generate_combinations(lc_coeffs, lc_nums):
     comb_list = []
@@ -94,10 +89,21 @@ def generate_combinations(lc_coeffs, lc_nums):
 
     return combinations
 
-
-# Define a function to load the single load cases
-# def load_single_load_cases(lc_names, lc_nums, combinations):
-#     lc_dict = dict(zip(lc_names, lc_nums))  # Merge lc_names with lc_nums
+# def read_single_load_case(args):
+#     lc_name, lc_num, filename = args
+#     filepath = os.path.join(SINGLE_LOAD_CASES_DIR, filename)
+#     if os.path.isfile(filepath):
+#         print(f"Reading load case {lc_num}: {lc_name}")
+#         lc_matrix = np.loadtxt(filepath, delimiter=',', skiprows=9)
+#         return lc_name, lc_matrix
+#     else:
+#         return lc_name, None
+#
+# def load_single_load_cases_multi(lc_names, lc_nums, combinations):
+#     print(f"lc_name={lc_names}, lc_num={lc_nums}")
+#     if not isinstance(lc_names, (list, tuple)) or not isinstance(lc_nums, (list, tuple)):
+#         return {}
+#     lc_dict = dict(zip(lc_names, list(lc_nums)))  # Merge lc_names with lc_nums
 #     single_load_cases = {}
 #     single_load_cases_changed = False  # Initialize flag for checking if single load cases have changed
 #     for combo in combinations:
@@ -125,56 +131,6 @@ def generate_combinations(lc_coeffs, lc_nums):
 #     if single_load_cases_changed:
 #         print("Single load cases have been added or changed.")
 #     return single_load_cases
-
-
-import os
-import numpy as np
-from multiprocessing import Pool
-
-# SINGLE_LOAD_CASES_DIR = "SingleLoadCases"
-
-def read_single_load_case(args):
-    lc_name, lc_num, filename = args
-    filepath = os.path.join(SINGLE_LOAD_CASES_DIR, filename)
-    if os.path.isfile(filepath):
-        print(f"Reading load case {lc_num}: {lc_name}")
-        lc_matrix = np.loadtxt(filepath, delimiter=',', skiprows=9)
-        return lc_name, lc_matrix
-    else:
-        return lc_name, None
-
-def load_single_load_cases_multi(lc_names, lc_nums, combinations):
-    print(f"lc_name={lc_names}, lc_num={lc_nums}")
-    if not isinstance(lc_names, (list, tuple)) or not isinstance(lc_nums, (list, tuple)):
-        return {}
-    lc_dict = dict(zip(lc_names, list(lc_nums)))  # Merge lc_names with lc_nums
-    single_load_cases = {}
-    single_load_cases_changed = False  # Initialize flag for checking if single load cases have changed
-    for combo in combinations:
-        LCsUsed = combo[3]  # Extract LCsUsed from the combinations tuple
-        for lc_name in LCsUsed:
-            lc_num = lc_dict.get(lc_name)
-            if lc_num is None and isinstance(lc_name, int):  # Check if lc_name is a number and not in lc_dict
-                lc_num = lc_name  # Use lc_name as lc_num
-                filename = 'shell_LC' + str(lc_name) + '.csv'  # Use lc_name in the filename
-            else:
-                filename = f"shell_{lc_name}.csv"
-            if lc_num is not None and lc_num != 0:
-                filepath = os.path.join(SINGLE_LOAD_CASES_DIR, filename)
-                if os.path.isfile(filepath):
-                    print(f"Reading load case {lc_num}: {lc_name}")
-                    lc_matrix = np.loadtxt(filepath, delimiter=',', skiprows=9)
-                    # Check if the single load case has changed
-                    if lc_name in single_load_cases:
-                        if not np.array_equal(lc_matrix, single_load_cases[lc_name]):
-                            single_load_cases_changed = True
-                    else:
-                        single_load_cases_changed = True
-                    single_load_cases[lc_name] = lc_matrix
-    # Check if any single load cases have been added or changed, and print message if they have
-    if single_load_cases_changed:
-        print("Single load cases have been added or changed.")
-    return single_load_cases
 
 
 def load_single_load_cases(lc_names, lc_nums, combinations, loaded_cases=None):
@@ -294,20 +250,25 @@ def main():
     # Initialize variables to track which single load cases have already been read
     print("Loading the single load cases...")
     single_load_cases_read = {}
-
+    # Track the number of iterations
+    i = 0
     while True:
+        i += 1
+        print(f"Iteration {i}")
         # Check if any of the LCsUsed in the combinations have already been read
         LCsUsedList = [tuple(combo[3]) for combo in combinations if tuple(combo[3]) not in single_load_cases_read]
 
         # Exit loop if all single load cases have been read
         if len(LCsUsedList) == 0:
             break
-
         # Load the remaining single load cases
-        single_load_cases_read.update(load_single_load_cases(lc_names, lc_nums, combinations, single_load_cases_read))
+        single_load_cases_new = load_single_load_cases(lc_names, lc_nums, combinations, single_load_cases_read)
+        single_load_cases_read.update(single_load_cases_new)
 
-    # ...existing code...
-
+        # Check if any single load cases have been added or changed, and break if they haven't
+        if not single_load_cases_new:
+            print("No single load cases have been changed, exiting loop.")
+            break
     # Write the output file
     # print("Writing the output file...")
     # write_output_file(combinations, single_load_cases, output_dir, binary=True)
