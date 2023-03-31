@@ -5,6 +5,7 @@ import time, datetime
 import math
 import fnmatch
 import sys
+import os
 
 # get current date and time
 now = datetime.datetime.now()
@@ -14,8 +15,9 @@ timestamp = now.strftime("%Y-%m-%d")
 time_start = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
 user = os.getlogin()
 
-# input_folder = '20230316_181757'
-input_folder = '20230214_161427'
+# input_folder = '20230327_103316'
+input_folder = '20230316_181757'
+# input_folder = '20230214_161427'
 path_input = '\\\\io-ws-ccstore1\\03.Ansys\\04_pythonScripts\\02_Landa_N_Plot\\09_Output\\' + input_folder +'\\'
 pathDB = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\01_Config1\\01_DB\\'
 path_out = '\\\\io-ws-ccstore1\\03.Ansys\\04_pythonScripts\\02_Landa_N_Plot\\09_Output\\'
@@ -91,6 +93,41 @@ def extract_keys(d, keys=[]):
             extract_keys(value, keys)
     return list(set(keys))
 
+def write_grid_lines(lineplan, element):
+    if element in ['B2', 'LB']:
+        with open(os.path.join(path_out, 'new_plots', f'Input_macro_lineplan-11_{element}.inp'), 'w') as f:
+            f.write(f'!!!!!! Grid lines generated for {element}\n')
+            f.write('/ ANNO, DELE\n')
+            f.write('ERASE\n')
+            f.write('csys,0 \n')
+            f.write('\n')
+            f.write('!!!!!Grid Lines from  T1 to T15\n')
+            f.write('\n')
+            f.write('/AN3D,ANUM,0,102,0,0,0\n')
+            f.write('\n')
+            for i in range(1, 16):
+                x = -57.65 + (i-1) * 7.4
+                f.write(f'/AN3D,Line,{x},{lineplan[element]["Ymin"]}-0.4,0,{x},{lineplan[element]["Ymax"]}+0.4,0\n')
+                f.write(f'/AN3D,TEXT,{x},{lineplan[element]["Ymax"]}+0.4,0,T{i}\n')
+            f.write('\n')
+            f.write('!!!!!!Gird Lines from TA to TJ\n')
+            f.write('\n')
+            for i, letter in enumerate(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']):
+                x = lineplan[element]["Xmin"] - 10 + i * 7.4
+                f.write(f'/AN3D,Line,{x},-35.5,0,{x},{lineplan[element]["Xmax"]}+10,0\n')
+                f.write(f'/AN3D,TEXT,{x}-10,-35.5,0,{letter}A\n')
+                f.write(f'/AN3D,Line,{x},-24.6,0,{x},{lineplan[element]["Xmax"]}+10,0\n')
+                f.write(f'/AN3D,TEXT,{x}-10,-24.6,0,{letter}B\n')
+                f.write(f'/AN3D,Line,{x},-15.8,0,{x},{lineplan[element]["Xmax"]}+10,0\n')
+                f.write(f'/AN3D,TEXT,{x}-10,-15.8,0,{letter}C\n')
+                f.write(f'/AN3D,Line,{x},-7.9,0,{x},{lineplan[element]["Xmax"]}+10,0\n')
+                f.write(f'/AN3D,TEXT,{x}-10,-7.9,0,{letter}D\n')
+                f.write(f'/AN3D,Line,{x},0,0,{x},{lineplan[element]["Xmax"]}+10,0\n')
+                f.write(f'/AN3D,TEXT,{x}-10,0,0,{letter}E\n')
+                f.write(f'/AN3D,Line,{x},7.9,0,{x},{lineplan[element]["Xmax"]}+10,0\n')
+                f.write(f'/AN3D,TEXT,{x}-10,7.9,0,{letter}F\n')
+                f.write(f'/AN3D,Line,{x},15.8,0,{x},{lineplan[element]["Xmax"]}+10,0\n')
+    return
 
 search_term = '*h46*.inp'
 inp_files = find_files_with_pattern(search_term, path_input)
@@ -196,10 +233,13 @@ keys += cw_keys + rw_keys
 
 keys.sort()
 
+#remove the empty elements
+files_by_element = {k: v for k, v in files_by_element.items() if v}
+directories_by_element = {k: v for k, v in directories_by_element.items() if v}
+
 elements = []
-
-elements = ['LB','B2','BIO','CROWN']
-
+elements = files_by_element.keys()
+# elements = ['LB','B2','BIO','CROWN']
 
 for element in elements:
     # create an empty dictionary
@@ -375,12 +415,13 @@ for element in elements:
         "!(see section 6.3 of ENG-51-CR-110011-CW-v03.0)", "", "alls", "cmsel,s,short_circular_walls_all,elem", "eplot",
         "nsle,r,all", ]
 
-    for i, (y1, y2) in enumerate(
-            [(159, 165), (176, 180), (79, 85), (95.5, 101), (0, 4.3), (15.6, 21), (-81, -75.3), (-64.5, -59)]):
+    for i, (y1, y2, z1, z2) in enumerate(
+            [(159, 165, -9.39, -7.98), (176, 180, -9.39, -7.98), (79, 85,-9.38,-7.98), (95.5, 101,-9.38,-7.98),
+             (0, 4.3,-9.38,-7.98), (15.6, 21,-9.38,-7.98), (-81, -75.3,-9.37,-7.98), (-64.5, -59,-9.37,-7.98)]):
         f = f"STP_{i + 1}"
         actions['CROWN'] += [
             f"nsel,r,loc,y,{y1},{y2}",
-            "nsel,r,loc,z,-9.39,-7.98",
+            f"nsel,r,loc,z,{z1},{z2}",
             "esln,r,1",
             f"cm,{f},elem",
             "",
@@ -441,14 +482,16 @@ for element in elements:
                 '!(see section 6.3 of ENG-51-CR-110011-CW-v03.0)',
                 '',
                 'csys,1',
-                'eplot']
+                'eplot',
+                'nsle,r,all']
 
 
     # Append formatted strings to actions list
-    for i, (y1, y2) in enumerate([(39, 45), (55, 60.1), (-24.3, 20), (-40, -35.4)]):
+    for i, (y1, y2, z1, z2) in enumerate([(39, 45,-9.36,-7.98), (55, 60.1,-9.36,-7.98),
+                                          (-24.3, 20,-9.37,-7.98), (-40, -35.4,-9.38,-7.98)]):
         actions['CROWN'] += [
         f"nsel,r,loc,y,{y1},{y2}",
-        f"nsel,r,loc,z,-9.37-7.98",
+        f"nsel,r,loc,z,{z1},{z2}",
         'esln,r,1',
         f'cm,STP_{i+1},elem',
         "",
@@ -552,6 +595,13 @@ for element in elements:
     else:
         folder_name = element
     f.write(f'/mkdir,.\{input_folder}\{folder_name}\n')
+    f.write(f'/inquire,warn_exist,exist,.\{input_folder}\{folder_name}\warnings,txt,,\n')
+    f.write(f'/inquire,warn_date,date,.\{input_folder}\{folder_name}\warnings,txt,,\n')
+    f.write(f'\n')
+    f.write(f'*if,warn_exist,eq,1,then\n')
+    f.write(f'    /rename,.\{input_folder}\{folder_name}\warnings,txt,,.\{input_folder}\{folder_name}\warnings_%warn_date%,txt,,\n')
+    f.write(f'*endif\n')
+    f.write(f'\n')
     f.write(f'*cfo,.\{input_folder}\{folder_name}\warnings,txt,, \n')
     f.write(f'*vwr \n')
     f.write(f"Warning file generated the {time_start} by {user}\n")
@@ -559,6 +609,10 @@ for element in elements:
     f.write(f"FILE NAME \t WARNING \t FOLDER \n")
     f.write(f'*cfc \n')
     f.write(f'\n')
+    # print('*************DEBUG*************************')
+    # print(f"files_by_element keys: {files_by_element.keys()}")
+    # print(f'{range(len(files_by_element[element]))}')
+    # print('*************DEBUG*************************')
     f.write('*do,ii,1,' + str(len(files_by_element[element])) + ',1' + '\n')
     for i in range(len(files_by_element[element])):
         if i == 0:
@@ -572,7 +626,7 @@ for element in elements:
         else:
             f.write("       conf = 1\n")
         target_margin = {}
-        if 'SL' in files_by_element[element][i]['new']:
+        if 'SL' in files_by_element[element][i]['new'] and 'SL3' not in files_by_element[element][i]['new'] and 'VDE' not in files_by_element[element][i]['new']:
             if 'cII' in files_by_element[element][i]['new']:
                 target_margin['SL'] = 1.101  # SL cat I/II
                 f.write("       target_margin = 1.101   !SL cat I/II\n")
@@ -592,16 +646,20 @@ for element in elements:
                 target_margin['VDE'] = 1.108  # VDE cat III/IV
                 f.write("       target_margin = 1.108   !VDE cat III/IV\n")
             elif 'cV' in files_by_element[element][i]['new']:
-                target_margin['VDE'] = 1.051  # VDE cat V
-                f.write("       target_margin = 1.051   !VDE cat V\n")
-            else:
-                target_margin['VDE'] = 1  # default value
+                if 'SL' in files_by_element[element][i]['new']:
+                    target_margin['VDE'] = 1.051  # VDE cat V
+                    f.write("       target_margin = 1.051   !SL + VDE cat V\n")
+                else:
+                    target_margin['VDE'] = 1.051  # VDE cat V
+                    f.write("       target_margin = 1.051   !VDE cat V\n")
+            # else:
+            #     target_margin['SL_VDE'] = 1.051  # default value
         else:
             target_margin['default'] = 1  # default value for other cases
             f.write("       target_margin = 1\n")
 
         f.write('       allsel,all\n')
-        f.write(f"       /inquire,filesize,size,{element_directories[i]}\\{files_by_element[element][i]['old']},inp\n")
+        f.write(f"       /inquire,filesize,size,{directories_by_element[element][i]}\\{files_by_element[element][i]['old']},inp\n")
         f.write(f"       fkb = filesize*1024\n")
         f.write(f"          *if, fkb, lt, 5, then\n")
         if 'Bio' in element:
@@ -610,13 +668,13 @@ for element in elements:
             f.write(f'              *cfo,.\{input_folder}\{element}\warnings,txt,,append\n')
 
         f.write(f'              *vwr\n')
-        f.write(f"              ('{files_by_element[element][i]['old']},inp\tNO RESULTS\t{element_directories[i]}')\n")
+        f.write(f"              ('{files_by_element[element][i]['old']},inp\tNO RESULTS\t{directories_by_element[element][i]}')\n")
         f.write(f'              *cfc\n')
         for etable in etables:
             f.write(f"              ETABLE,{etable}\n")
         # if fkb < 5:
         f.write(f"          *else\n")
-        f.write(f"               /input,'{files_by_element[element][i]['old']}','inp','{element_directories[i]} '\n")
+        f.write(f"               /input,'{files_by_element[element][i]['old']}','inp','{directories_by_element[element][i]} '\n")
         f.write(f"          *endif\n")
     f.write(f"    *endif\n")
 
@@ -761,9 +819,9 @@ for element in elements:
             f.write(f"        /input,{input_str},inp,'{path_Macros}'\n")
             f.write('        /REP,FAST\n')
             f.write(f'        /VIEW,{bio_view["view"]}\n')
-            f.write(f'        /VUP{bio_view["vup"]}\n')
+            # f.write(f'        /VUP{bio_view["vup"]}\n')
             for angs in bio_view['ang']:
-                f.write(f'        /ANG,{angs}\n')
+                f.write(f'        /ANG,1,{angs}\n')
             counter += 1
         f.write('   *endif\n')
         counter = 1
@@ -1059,12 +1117,15 @@ for element in elements:
             f.write(f'                *IF,qNum,EQ,{qNum},THEN\n')
         else:
             f.write(f'                *ELSEIF,qNum,EQ,{qNum},THEN\n')
-        if 'Bio' in element:
+        if 'BIO' in element or 'CROWN' in element:
+            # f.write(f'')
             f.write(f'                        cmsel,,%reinf_comp% \n')
+            f.write(f'                        nsle \n')
+            f.write(f'                        /REP,FAST \n')
         elif 'CROWN' in element:
-                f.write(f'')
+            f.write(f'')
         else:
-                f.write(f'                        cmsel,,{element}\n')
+            f.write(f'                        cmsel,,{element}\n')
         if element != 'B2' and element != 'LB':
             f.write('                        /show,png\n')
             f.write(
@@ -1075,7 +1136,7 @@ for element in elements:
             f.write('                        *ENDIF\n')
             f.write('                        /show,png\n')
             f.write(
-                f'                        /title, Safety factor in %name% -{element}- {qNum_position_dict[qNum]["title"]}\n')
+                f'                        /title, Safety factor in %name% -%reinf_comp%- {qNum_position_dict[qNum]["title"]}\n')
 
         for q in qNum_position_dict[qNum]['qNum']:
             f.write(f"                        qnt = '{q}'\n")
@@ -1089,13 +1150,14 @@ for element in elements:
                         f.write(f"                        bulk_kb = BULK*1024\n")
                         f.write(f"                            *if, bulk_kb, lt, 10, or, AVAILABLE, eq, 0, then\n")
                         if 'Bio' in element:
-                            f.write(f'                                *cfo,.\{input_folder}\BIO\warnings,txt,,append\n')
+                            f.write(f'                                    /out,.\{input_folder}\BIO\warnings,txt,,append\n')
                         else:
-                            f.write(f'                                *cfo,.\{input_folder}\{element}\warnings,txt,,append\n')
-                        f.write(f'                                *vwr\n')
+                            f.write(f'                                    /out,.\{input_folder}\{element}\warnings,txt,,append\n')
                         f.write(
-                            f"                                ('{files_by_element[element][i]['old']},inp\tPICTURE missing or wrong:{q}\t{element_directories[i]}')\n")
-                        f.write(f'                                *cfc\n')
+                            f"                                    /com, %name%\tPICTURE missing or wrong:{q}:\t%reinf_comp%\n")
+                        f.write(f'                                    /out\n')
+                        f.write(
+                            f'                                /rename,file000,png,,%name%_%reinf_comp%_{q}_positive,png\n')
                         f.write(f'                            *else\n')
                         f.write(f'                                /rename,file000,png,,%name%_%reinf_comp%_{q}_positive,png\n')
                         f.write(f'                            *endif\n')
@@ -1105,14 +1167,15 @@ for element in elements:
                         f.write(f"                        bulk_kb = BULK*1024\n")
                         f.write(f"                            *if, bulk_kb, lt, 10, or, AVAILABLE, eq, 0, then\n")
                         if 'Bio' in element:
-                            f.write(f'                            *cfo,.\{input_folder}\BIO\warnings,txt,,append\n')
+                            f.write(f'                                /out,.\{input_folder}\BIO\warnings,txt,,append\n')
                         else:
                             f.write(
-                                f'                            *cfo,.\{input_folder}\{element}\warnings,txt,,append\n')
-                        f.write(f'                            *vwr\n')
+                                f'                                /out,.\{input_folder}\{element}\warnings,txt,,append\n')
                         f.write(
-                            f"                            ('{files_by_element[element][i]['old']},inp\tPICTURE missing or wrong:{q}\t{element_directories[i]}')\n")
-                        f.write(f'                            *cfc\n')
+                            f"                                /com, %name%\tPICTURE missing or wrong:{q}:\t%reinf_comp%\n")
+                        f.write(f'                                /out\n')
+                        f.write(
+                            f'                                /rename,file000,png,,%name%_%reinf_comp%_{q}_negative,png\n')
                         f.write(f'                            *else\n')
                         f.write(
                             f'                                /rename,file000,png,,%name%_%reinf_comp%_{q}_negative,png\n')
@@ -1123,17 +1186,18 @@ for element in elements:
                     f.write(f"                        bulk_kb = BULK*1024\n")
                     f.write(f"                            *if, bulk_kb, lt, 10, or, AVAILABLE, eq, 0, then\n")
                     if 'Bio' in element:
-                        f.write(f'                            *cfo,.\{input_folder}\BIO\warnings,txt,,append\n')
+                        f.write(f'                                /out,.\{input_folder}\BIO\warnings,txt,,append\n')
                     else:
                         f.write(
-                            f'                            *cfo,.\{input_folder}\{element}\warnings,txt,,append\n')
-                    f.write(f'                            *vwr\n')
+                            f'                                /out,.\{input_folder}\{element}\warnings,txt,,append\n')
                     f.write(
-                        f"                            ('{files_by_element[element][i]['old']},inp\tPICTURE missing or wrong:{q}\t{element_directories[i]}')\n")
-                    f.write(f'                            *cfc\n')
+                        f"                                /com, %name%\tPICTURE missing or wrong:{q}:\t%reinf_comp%\n")
+                    f.write(f'                                /out\n')
+                    f.write(
+                        f'                                /rename,file000,png,,%name%_%reinf_comp%_{q},png\n')
                     f.write(f'                            *else\n')
                     f.write(
-                        f'                                /rename,file000,png,,%name%_{element}_{q},png\n')
+                        f'                                /rename,file000,png,,%name%_%reinf_comp%_{q},png\n')
                     f.write(f'                            *endif\n')
             else:
                 if 'LANDA_N' in q:
@@ -1143,14 +1207,15 @@ for element in elements:
                         f.write(f"                        bulk_kb = BULK*1024\n")
                         f.write(f"                            *if, bulk_kb, lt, 10, or, AVAILABLE, eq, 0, then\n")
                         if 'Bio' in element:
-                            f.write(f'                            *cfo,.\{input_folder}\BIO\warnings,txt,,append\n')
+                            f.write(f'                                /out,.\{input_folder}\BIO\warnings,txt,,append\n')
                         else:
                             f.write(
-                                f'                            *cfo,.\{input_folder}\{element}\warnings,txt,,append\n')
-                        f.write(f'                            *vwr\n')
+                                f'                                /out,.\{input_folder}\{element}\warnings,txt,,append\n')
                         f.write(
-                            f"                            ('{files_by_element[element][0][i]},inp\tPICTURE missing or wrong:{q}\t{element_directories[i]}')\n")
-                        f.write(f'                            *cfc\n')
+                            f"                                /com, %name%\tPICTURE missing or wrong:{q}:\t%reinf_comp%\n")
+                        f.write(f'                                /out\n')
+                        f.write(
+                            f'                                /rename,file000,png,,%name%_%reinf_comp%_{q}_positive,png\n')
                         f.write(f'                            *else\n')
                         f.write(
                             f'                                /rename,file000,png,,%name%_%reinf_comp%_{q}_positive,png\n')
@@ -1161,14 +1226,15 @@ for element in elements:
                         f.write(f"                        bulk_kb = BULK*1024\n")
                         f.write(f"                            *if, bulk_kb, lt, 10, or, AVAILABLE, eq, 0, then\n")
                         if 'Bio' in element:
-                            f.write(f'                            *cfo,.\{input_folder}\BIO\warnings,txt,,append\n')
+                            f.write(f'                                /out,.\{input_folder}\BIO\warnings,txt,,append\n')
                         else:
                             f.write(
-                                f'                            *cfo,.\{input_folder}\{element}\warnings,txt,,append\n')
-                        f.write(f'                            *vwr\n')
+                                f'                                /out,.\{input_folder}\{element}\warnings,txt,,append\n')
                         f.write(
-                            f"                            ('{files_by_element[element][0][i]},inp\tPICTURE missing or wrong:{q}\t{element_directories[i]}')\n")
-                        f.write(f'                            *cfc\n')
+                            f"                                /com, %name%\tPICTURE missing or wrong:{q}:\t%reinf_comp%\n")
+                        f.write(f'                                /out\n')
+                        f.write(
+                            f'                                /rename,file000,png,,%name%_%reinf_comp%_{q}_negative,png\n')
                         f.write(f'                            *else\n')
                         f.write(
                             f'                                /rename,file000,png,,%name%_%reinf_comp%_{q}_negative,png\n')
@@ -1179,22 +1245,36 @@ for element in elements:
                     f.write(f"                        bulk_kb = BULK*1024\n")
                     f.write(f"                            *if, bulk_kb, lt, 10, or, AVAILABLE, eq, 0, then\n")
                     if 'Bio' in element:
-                        f.write(f'                            *cfo,.\{input_folder}\BIO\warnings,txt,,append\n')
+                        f.write(f'                                /out,.\{input_folder}\BIO\warnings,txt,,append\n')
                     else:
                         f.write(
-                            f'                            *cfo,.\{input_folder}\{element}\warnings,txt,,append\n')
-                    f.write(f'                            *vwr\n')
+                            f'                                /out,.\{input_folder}\{element}\warnings,txt,,append\n')
                     f.write(
-                        f"                            ('{files_by_element[element][0][i]},inp\tPICTURE missing or wrong:{q}\t{element_directories[i]}')\n")
-                    f.write(f'                            *cfc\n')
+                        f"                                /com, %name%\tPICTURE missing or wrong:{q}:\t%reinf_comp%\n")
+                    f.write(f'                                /out\n')
+                    f.write(
+                        f'                                /rename,file000,png,,%name%_%reinf_comp%_{q},png\n')
                     f.write(f'                            *else\n')
                     f.write(
-                        f'                                /rename,file000,png,,%name%_{element}_{q},png\n')
+                        f'                                /rename,file000,png,,%name%_%reinf_comp%_{q},png\n')
                     f.write(f'                            *endif\n')
     f.write('                *ENDIF' + '\n')
     f.write('        *ENDDO' + '\n')
     f.write('   *enddo' + '\n')
     f.write('*enddo' + '\n')
+
+    # Create the directory for the element if it doesn't exist
+    element_dir = os.path.join(path_Macros, input_folder, element)
+    if not os.path.exists(element_dir):
+        os.makedirs(element_dir)
+
+    # Create the CW and RW directories for crown elements if they don't exist
+    if 'CROWN' in element:
+        for item in ['CW', 'RW']:
+            item_dir = os.path.join(element_dir, item)
+            if not os.path.exists(item_dir):
+                os.makedirs(item_dir)
+
     if 'Bio' in element:
         f.write(f'/sys,move,{path_Macros}*.png \t {path_Macros}' + f'{input_folder}' + '\BIO\n')
     elif 'CROWN' in element:
@@ -1203,5 +1283,7 @@ for element in elements:
     else:
         f.write(f'/sys,move,{path_Macros}*.png \t {path_Macros}' + f'{input_folder}' + '\\' + f'{element}\n')
     f.close()
-sys.exit()
 
+    # write_grid_lines(lineplan, element)
+
+sys.exit()
