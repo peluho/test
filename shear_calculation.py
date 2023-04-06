@@ -1,24 +1,5 @@
 import math
 
-data = {
-    "h": [1.3, 0.455],
-    "bw": [1.5, 1.5],
-    "fck": [90, 90],
-    "fys": [500, 500],
-    "fs": [1.15, 1.15],
-    "fc": [1.5, 1.5],
-    "ds": [16, 14],
-    "ss": [100, 100],
-    "Ast": [60.32, 15.39],
-    "dtz": [14, 14],
-    "stz": [200, 200],
-    "Azt": [69.3, 38.5],
-    "dty": [14, 14],
-    "sty": [200, 200],
-    "Ayt": [30.8, 7.7],
-    "alpha_s": [33.69 * math.pi / 180, 45 * math.pi / 180],
-    "b_span": [2.69, 1.4],
-}
 
 
 def calculate_beam_data(data):
@@ -109,13 +90,61 @@ def calculate_beam_data(data):
         acw.append([1, 0])
         # v
         v.append([0.6 * (1 - data['fck'][jj] / 250), 0])
+    # Return a dictionary containing all the calculated values
+    return {
+        'Acro': Acro,
+        'peri': peri,
+        'eff_wt_aux': eff_wt_aux,
+        'h_eff': h_eff,
+        'Ast_eff': Ast_eff,
+        'alpha_1': alpha_1,
+        'fwd': fwd,
+        'fwdp': fwdp,
+        'Vrdc': Vrdc,
+        'Vrdmax': Vrdmax,
+        'Vrdmax_G': Vrdmax_G,
+        'Vrdmax_Q': Vrdmax_Q,
+        'Vrdmax_GQ': Vrdmax_GQ,
+        'Asv': Asv,
+        'zv': zv,
+        'fywd': fywd,
+        'v_oper': v_oper,
+        'fyd': fyd,
+        'fcd': fcd,
+        'fcm': fcm,
+        'fctm': fctm,
+        'v1': v1,
+        'acw': acw,
+        'v': v
+    }
 
+def main():
 
-# call the calculate_beam_data function
-results = calculate_beam_data(data)
+    data = {
+        "h": [1.3, 0.455],
+        "bw": [1.5, 1.5],
+        "fck": [90, 90],
+        "fys": [500, 500],
+        "fs": [1.15, 1.15],
+        "fc": [1.5, 1.5],
+        "ds": [16, 14],
+        "ss": [100, 100],
+        "Ast": [60.32, 15.39],
+        "dtz": [14, 14],
+        "stz": [200, 200],
+        "Azt": [69.3, 38.5],
+        "dty": [14, 14],
+        "sty": [200, 200],
+        "Ayt": [30.8, 7.7],
+        "alpha_s": [33.69 * math.pi / 180, 45 * math.pi / 180],
+        "b_span": [2.69, 1.4],
+    }
 
-#Print the results
-print(results)
+    # call the calculate_beam_data function
+    results = calculate_beam_data(data)
+
+    #Print the results
+    print(results)
 
 # def calculate_shear_reinforcement(data):
 #     # Extract the required data from the input data
