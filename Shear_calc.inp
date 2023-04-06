@@ -1,0 +1,1033 @@
+
+
+!~ name_deep='barres_ulsf2_1_TEST'
+to_skip=0
+/INQUIRE,numlines,LINES,name_deep,txt
+to_read_deep=numlines-to_skip-1
+*DEL,%name_deep%,,NOPR
+*DIM,%name_deep%,,%to_read_deep%,17
+*VREAD,%name_deep%(1,1),%name_deep%,txt,,JIK,17,%to_read_deep%,,1
+(F10.0,F11.0,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3)
+
+!~ name_shallow='barres_ulsf2_1'
+to_skip=0
+/INQUIRE,numlines,LINES,name_shallow,txt
+to_read_shallow=numlines-to_skip-1
+*DEL,%name_shallow%,,NOPR
+*DIM,%name_shallow%,,%to_read_shallow%,17
+*VREAD,%name_shallow%(1,1),%name_shallow%,txt,,JIK,17,%to_read_shallow%,,1
+(F10.0,F11.0,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3,E15.3)
+
+
+
+!~ fini $ /cle
+!!Definition beam data (1.3 BEAM) | (0.455 BEAM)
+pi=3.14159
+*dim,h,array,2
+h(1)=1.3,0.455 	!h [m]	1.3	Height of section (dimension parallel to shear section force)
+*dim,bw,array,2
+bw(1)=1.5,1.5 	!bw [m]	1.5	Width of section (dimension perpendicular to shear force)
+*dim,fck,array,2
+fck(1)=90,90 	!fck [MPa]	90	Characteristic compressive strength of concrete
+*dim,fys,array,2
+fys(1)=500,500	 !fys [MPa]	500	Characteristic tensile strength of reinforcement
+*dim,fs,array,2
+fs(1)=f_s,f_s	!fs		Safety factor for steel reinforcement
+*dim,fc,array,2
+fc(1)=f_c,f_c	!?c		Safety factor for concrete
+*dim,ds,array,2
+ds(1)=16,14	!f stirrups	16/14	Diameter of stirrups
+*dim,ss,array,2
+ss(1)=100,100	!spacing of stirrups	100	mm
+*dim,Ast,array,2
+Ast(1)= 60.32,15.39	!Astirr	60.32	3HB16@100mm [cm2/m] / 1HB16@100mm [cm2/m]
+*dim,dtz,array,2
+dtz(1)=14,14	!f ties,z	14	Diameter of stirrups
+*dim,stz,array,2
+stz(1)=200,200!spacing of ties z	200	mm
+*dim,Azt,array,2
+Azt(1)=69.3,38.5!Atie,z	69.3	9HB14@200mm [cm2/m] \ 5HB14@200mm [cm2/m]
+*dim,dty,array,2
+dty(1)=14,14	!f ties,y	14	Diameter of stirrups
+*dim,sty,array,2
+sty(1)=200,200	!spacing of ties y	200	mm
+*dim,Ayt,array,2
+Ayt(1)=30.8,7.7	!Atie,y	30.8	4HB14@200mm [cm2/m] \ 1HB14@200mm [cm2/m]
+*dim,alpha_s,array,2
+alpha_s(1)=33.69*pi/180,45*pi/180	!Strut angle	33.69	Angle in deg
+*dim,b_span,array,2
+b_span(1)=2.690,1.40	!Beam span	2.69	m
+
+
+!!Calculations BEAM DATA
+*dim,Acro,array,2
+*dim,peri,array,2
+*dim,eff_wt,array,2
+*dim,eff_wt_aux,array,2
+eff_wt_aux(1)=0.001*(35+16+40+16/2),0.001*(35+16/2)
+*dim,peritor,array,2
+*dim,effz,array,2
+*dim,levz,array,2
+*dim,effy,array,2
+*dim,levy,array,2
+
+*dim,Aenc,array,2
+
+*dim,cotant,array,2
+*dim,maxctany,array,2
+*dim,maxctanz,array,2
+*dim,fywd,array,2
+*dim,fyd,array,2
+*dim,fcd,array,2
+*dim,fcm,array,2
+*dim,fctm,array,2
+*dim,v1,array,2
+*dim,acw,array,2
+*dim,v,array,2
+
+*do,jj,1,2,1
+    Acro(jj,1)=h(jj,1)*bw(jj,1) !Area cross section	1.95	m2 | 0.6825	m2
+
+    peri(jj,1)=2*(h(jj,1)+bw(jj,1)) !Perimeter	5.6	m | 3.91	m
+    !*VSCFUN, ParR, Func, Par1
+    *if,acro(jj,1)/peri(jj,1),gt,eff_wt_aux(jj,1),then !Effective wall thickness	0.348	m | 0.175	m
+        eff_wt(jj,1)=acro(jj,1)/peri(jj,1)
+    *else
+        eff_wt(jj,1)=eff_wt_aux(jj,1)
+    *endif
+
+    peritor(jj,1)=2*((h(jj,1)-2*eff_wt(jj,1))+((bw(jj,1)-2*eff_wt(jj,1))))!Torsion perimeter	2.814	m | 2.514	m
+
+    effz(jj,1)=0.9*h(jj,1) !Effective depth z axis	1.17	m | Effective depth z axis	0.4095	m
+    levz(jj,1)=0.9*effz(jj,1) !Level arm z direction	1.053	m | Level arm z direction	0.36855	m
+    effy(jj,1)=0.9*bw(jj,1) !Effective depth y axis	1.35	m | Effective depth y axis	1.35	m
+    levy(jj,1)=0.9*effy(jj,1) !Level arm y direction	1.215	m | Level arm z direction	1.215	m
+
+    Aenc(jj,1)= (h(jj,1)-eff_wt(jj,1))*(bw(jj,1)-eff_wt(jj,1)) !Area enclosed by centerlines	1.096	m2 | 0.372	m2
+
+    !cotg (theta)	1.50 |  1.00
+    !Maximum allowed cotg(theta) y dir	1.79 | 0.93
+    !Maximum allowed cotg(theta) z dir	2.07 | 3.08
+    maxctany(jj,1)=b_span(jj,1)/bw(jj,1)
+    maxctanz(jj,1)=b_span(jj,1)/h(jj,1)
+
+    *if,1/tan(alpha_s(jj,1)),lt,maxctany(jj,1),and,1/tan(alpha_s(jj,1)),lt,maxctanz(jj,1),then
+        *if,1/tan(alpha_s(jj,1)),gt,1,then
+            cotant(jj,1)=1/tan(alpha_s(jj,1))
+        *else
+            cotant(jj,1)=1
+        *endif
+    *elseif,maxctany(jj,1),lt,maxctanz(jj,1),then
+        *if,maxctany(jj,1),gt,1,then
+            cotant(jj,1)=maxctany(jj,1)
+        *else
+            cotant(jj,1)=1
+        *endif
+    *else
+        *if,maxctanz(jj,1),gt,1,then
+            cotant(jj,1)=maxctanz(jj,1)
+        *else
+            cotant(jj,1)=1
+        *endif
+    *endif
+
+    *voper,fyd(jj,1),fys(jj,1),div,fs(jj,1) !fywd	400	MPa
+    *voper,fywd(jj,1),fyd(jj,1),min,0.8*fys(jj,1) !fywd	400	MPa
+    *voper,fcd(jj,1),fck(jj,1),div,fc(jj,1) !fcd	60	MPa
+    *voper,fcm(jj,1),fck(jj,1),add,8 !fcm	98	MPa
+    !fctm	5.04	MPa
+    *if,fck(jj,1),le,50,then
+        fctm(jj,1)=0.3*fck(jj,1)
+    *else
+        fctm(jj,1)=2.12*log(1+fcm(jj,1)/10)
+    *endif
+    !v1 = 0.5
+    *if,0.9-fck(jj,1)/200,gt,0.5,then
+        v1(jj,1)=0.9-fck(jj,1)/200
+    *else
+        v1(jj,1)=0.5
+    *endif
+    !alphacw = 1
+    acw(1)=1,1
+    !v = 0.384
+    v(1)=0.6*(1-fck(jj,1)/250),0.6*(1-fck(jj,1)/250)
+*enddo
+
+
+!deepy
+ !*DIM,%name_deep%deepY,,3,19
+*DIM,%name_deep%deepY,,%to_read_deep%,19
+ !*do,jj,1,3
+*do,jj,1,%to_read_deep%
+    %name_deep%deepY(jj,1)=%name_deep%(jj,1) !ELEMENT
+	%name_deep%deepY(jj,2)=%name_deep%(jj,2) !CASE
+
+    !Nd (kN)
+        *if,%name_deep%(jj,3),lt,0,then
+            *if,%name_deep%(jj,3),lt,%name_deep%(jj,6),then
+                %name_deep%deepY(jj,3)=%name_deep%(jj,3)*10
+            *else
+                %name_deep%deepY(jj,3)=%name_deep%(jj,6)*10
+            *endif
+        *else
+            *if,%name_deep%(jj,3),gt,%name_deep%(jj,6),then
+                %name_deep%deepY(jj,3)=%name_deep%(jj,3)*10
+            *else
+                %name_deep%deepY(jj,3)=%name_deep%(jj,6)*10
+            *endif
+        *endif
+
+    !Vy (kN)
+            *if,abs(%name_deep%(jj,4)),gt,abs(%name_deep%(jj,7)),then
+                %name_deep%deepY(jj,4)=abs(%name_deep%(jj,4))*10
+            *else
+                %name_deep%deepY(jj,4)=abs(%name_deep%(jj,7))*10
+            *endif
+
+    !~ !Vz (kN)
+            !~ *if,abs(%name_deep%(jj,5)),gt,abs(%name_deep%(jj,8)),then
+                !~ %name_deep%deepY(jj,5)=abs(%name_deep%(jj,5))*10
+            !~ *else
+                !~ %name_deep%deepY(jj,5)=abs(%name_deep%(jj,8))*10
+            !~ *endif
+
+    !T (kN.m)
+            *if,abs(%name_deep%(jj,9)),gt,abs(%name_deep%(jj,12)),then
+                %name_deep%deepY(jj,5)=abs(%name_deep%(jj,9))*10
+            *else
+                %name_deep%deepY(jj,5)=abs(%name_deep%(jj,12))*10
+            *endif
+
+!Mean compressive stress (MPa)
+    !scp = Ned/A
+
+    !=0.001*C5/Deep_beam_data!$B$20
+
+    %name_deep%deepY(jj,11)=0.001*%name_deep%deepY(jj,3)/Acro(1,1)
+
+    !Cot (theta)
+    ![-]
+
+    !=MIN(IF(K5<=0,1.2+0.2*ABS(K5)/Deep_beam_data!$B$36,MIN(1,1.2+0.9*K5/Deep_beam_data!$B$36)),MAX(Deep_beam_data!$B$30,1)) !coef 1.2 modified in v2
+
+
+    *if,%name_deep%deepY(jj,11),le,0,then
+        %name_deep%deepY(jj,12)=1.2+0.2*abs(%name_deep%deepY(jj,11))/fctm(1,1) !coef 1.2 modified in v2
+    *else
+        *if,1,gt,1.2+0.9*%name_deep%deepY(jj,11)/fctm(1,1),then
+            %name_deep%deepY(jj,12)=1.2+0.9*%name_deep%deepY(jj,11)/fctm(1,1)
+        *else
+            %name_deep%deepY(jj,12)=1
+        *endif
+    *endif
+
+
+
+    *if,1,gt,maxctany(1,1),then
+        temp=1
+    *else
+        temp=maxctany(1,1)
+    *endif
+
+    *if,temp,le,%name_deep%deepY(jj,12),then
+        %name_deep%deepY(jj,12)=temp
+    *endif
+
+cotant(1,1)= %name_deep%deepY(jj,12)
+
+alpha_s(1,1)=atan(1/cotant(1,1))
+    !Demand of steel due to torsion (cm2/m) transv
+    !Ted/(2*Ak*fywd*cot(theta))
+
+    !=10*(E5)/(2*Deep_beam_data!$B$28*Deep_beam_data!$B$32*Deep_beam_data!$B$29)
+
+    %name_deep%deepY(jj,6)=10*%name_deep%deepY(jj,5)/(2*Aenc(1,1)*fywd(1,1)*cotant(1,1))
+
+    ! Demand of steel due to torsion (cm2) long
+    !Ted*cot(theta)/(2*Ak*fyd*)
+
+    !=10*(E5*Deep_beam_data!$B$23*Deep_beam_data!$B$29)/(2*Deep_beam_data!$B$28*Deep_beam_data!$B$33)
+
+    %name_deep%deepY(jj,7)=10*(%name_deep%deepY(jj,5)*peritor(1,1)*cotant(1,1))/(2*Aenc(1,1)*fyd(1,1))
+
+    !T rd,max
+    !2*v*acw*fcd*Ak*tef*sin(theta)*cos(theta)
+
+    !=(2*Deep_beam_data!$B$39*Deep_beam_data!$B$38*Deep_beam_data!$B$34*Deep_beam_data!$B$28*Deep_beam_data!$B$22*SIN(RADIANS(Deep_beam_data!$B$17))*COS(RADIANS(Deep_beam_data!$B$17)))*1000
+
+    %name_deep%deepY(jj,8)=(2*v(1,1)*acw(1,1)*fcd(1,1)*Aenc(1,1)*eff_wt(1,1)*sin(alpha_s(1,1))*cos(alpha_s(1,1)))*1000
+
+    !Available reinforcement shear (cm2)
+    !2*(Astirrup-Ator_trans)+Atie
+
+    !=2*(Deep_beam_data!$B$10-Shear_deep_beam_y!F5)+Deep_beam_data!$B$16
+
+    %name_deep%deepY(jj,9)=2*(Ast(1,1)-%name_deep%deepY(jj,6))+Ayt(1,1)
+
+    !Demand of steel due to shear EC2 (cm2/m)
+    !Ved/(d*fywd*cot(?))
+
+    !=(D5/(Deep_beam_data!$B$27*Deep_beam_data!$B$29*Deep_beam_data!$B$32))*10
+
+    %name_deep%deepY(jj,10)=(%name_deep%deepY(jj,4)/(levy(1,1)*cotant(1,1)*fywd(1,1)))*10
+
+    
+
+
+    !Vfd ITER CODE
+    ![-]
+    !SI(K5<0;1000*0,068*Deep_beam_data!$B$2*Deep_beam_data!$B$27*(1-L5/4)*Deep_beam_data!$B$34;1000*0,068*Deep_beam_data!$B$2*Deep_beam_data!$B$27*(1-0,36/L5)*Deep_beam_data!$B$34)
+
+    *if,%name_deep%deepY(jj,11),le,0,then
+        %name_deep%deepY(jj,13)=1000*0.068*h(1,1)*levy(1,1)*(1-%name_deep%deepY(jj,12)/4)*fcd(1,1)
+    *else
+        %name_deep%deepY(jj,13)=1000*0.068*h(1,1)*levy(1,1)*(1-0.36/%name_deep%deepY(jj,12))*fcd(1,1)
+    *endif
+
+    !Demand of steel due to shear ITER CODE (cm2/m)
+    !'max(0;(Ved-Vfed)/(d*fywd*cot(θ)))
+    !=MAX(0;((D5-M5)/(Deep_beam_data!$B$27*Deep_beam_data!$B$29*Deep_beam_data!$B$32))*10)
+
+
+    %name_deep%deepY(jj,14)=((%name_deep%deepY(jj,4)-%name_deep%deepY(jj,13))/(levy(1,1)*cotant(1,1)*fywd(1,1)))*10
+
+    *if,0,gt,%name_deep%deepY(jj,14),then
+        %name_deep%deepY(jj,14)=0
+    *endif
+
+    ! Safety margin due to steel
+    ! (Available/Demand)
+    ! =I5/MAX(J5;N5)
+
+    *if,%name_deep%deepY(jj,10),gt,%name_deep%deepY(jj,14),then
+        temp=%name_deep%deepY(jj,10)
+    *else
+        temp=%name_deep%deepY(jj,14)
+    *endif
+
+    %name_deep%deepY(jj,15)=%name_deep%deepY(jj,9)/temp
+
+    ! V rd,max EC2
+    ! αcw*ν1*bw*d*fcd*(cotθ/(1+cotθ²))
+    ! =1000*(Deep_beam_data!$B$38*Deep_beam_data!$B$2*Deep_beam_data!$B$27*Deep_beam_data!$B$37*Deep_beam_data!$B$34)/(Deep_beam_data!$B$29+1/Deep_beam_data!$B$29)
+
+    %name_deep%deepY(jj,16)=1000*(acw(1,1)*h(1,1)*levy(1,1)*v1(1,1)*fcd(1,1))/(cotant(1,1)+1/cotant(1,1))
+
+    ! V rd,max ITER CODE
+    ! αcw*ν1*bw*d*fcd*(cotθ/(1+cotθ²))
+    ! =1000*(Deep_beam_data!$B$38*Deep_beam_data!$B$2*Deep_beam_data!$B$27*Deep_beam_data!$B$37*Deep_beam_data!$B$34)/(L5+1/L5)
+
+    %name_deep%deepY(jj,17)=1000*(acw(1,1)*h(1,1)*levy(1,1)*v1(1,1)*fcd(1,1))/(%name_deep%deepY(jj,12)+1/%name_deep%deepY(jj,12))
+
+    ! Strut margin
+    ! 1/(Ted/Trd+Ved/Vrd)
+    ! =1/((E5/H5)+(D5/MAX(P5;Q5)))
+
+    *if,%name_deep%deepY(jj,16),gt,%name_deep%deepY(jj,17),then
+        temp=%name_deep%deepY(jj,16)
+    *else
+        temp=%name_deep%deepY(jj,17)
+    *endif
+
+    %name_deep%deepY(jj,18)=1/((%name_deep%deepY(jj,5)/%name_deep%deepY(jj,8))+(%name_deep%deepY(jj,4)/temp))
+
+    ! Margin
+    ! Min (safety_steel;Strut_margin)
+    ! =MIN(O5;R5)
+
+    *if,%name_deep%deepY(jj,15),gt,%name_deep%deepY(jj,18),then
+         %name_deep%deepY(jj,19)=%name_deep%deepY(jj,18)
+    *else
+        %name_deep%deepY(jj,19)=%name_deep%deepY(jj,15)
+    *endif
+
+    *enddo
+
+
+
+    !deepz
+    ! *DIM,%name_deep%deepZ,,3,19
+    *DIM,%name_deep%deepZ,,%to_read_deep%,19
+    ! *do,jj,1,3
+    *do,jj,1,%to_read_deep%
+        %name_deep%deepZ(jj,1)=%name_deep%(jj,1) !ELEMENT
+        %name_deep%deepZ(jj,2)=%name_deep%(jj,2) !CASE
+
+    !Nd (kN)
+        *if,%name_deep%(jj,3),lt,0,then
+            *if,%name_deep%(jj,3),lt,%name_deep%(jj,6),then
+                %name_deep%deepZ(jj,3)=%name_deep%(jj,3)*10
+            *else
+                %name_deep%deepZ(jj,3)=%name_deep%(jj,6)*10
+            *endif
+        *else
+            *if,%name_deep%(jj,3),gt,%name_deep%(jj,6),then
+                %name_deep%deepZ(jj,3)=%name_deep%(jj,3)*10
+            *else
+                %name_deep%deepZ(jj,3)=%name_deep%(jj,6)*10
+            *endif
+        *endif
+
+    !Vy (kN)
+            *if,abs(%name_deep%(jj,5)),gt,abs(%name_deep%(jj,8)),then
+                %name_deep%deepZ(jj,4)=abs(%name_deep%(jj,5))*10
+            *else
+                %name_deep%deepZ(jj,4)=abs(%name_deep%(jj,8))*10
+            *endif
+
+    !~ !Vz (kN)
+            !~ *if,abs(%name_deep%(jj,5)),gt,abs(%name_deep%(jj,8)),then
+                !~ %name_deep%deepZ(jj,5)=abs(%name_deep%(jj,5))*10
+            !~ *else
+                !~ %name_deep%deepZ(jj,5)=abs(%name_deep%(jj,8))*10
+            !~ *endif
+
+    !T (kN.m)
+            *if,abs(%name_deep%(jj,9)),gt,abs(%name_deep%(jj,12)),then
+                %name_deep%deepZ(jj,5)=abs(%name_deep%(jj,9))*10
+            *else
+                %name_deep%deepZ(jj,5)=abs(%name_deep%(jj,12))*10
+            *endif
+
+    !Mean compressive stress (MPa)
+    !scp = Ned/A
+
+    !=0.001*C5/Deep_beam_data!$B$20
+
+    %name_deep%deepZ(jj,11)=0.001*%name_deep%deepZ(jj,3)/Acro(1,1)
+
+    !Cot (theta)
+    ![-]
+
+    !=MIN(IF(K5<=0,1.2+0.2*ABS(K5)/Deep_beam_data!$B$36,MIN(1,1.2+0.9*K5/Deep_beam_data!$B$36)),MAX(Deep_beam_data!$B$30,1)) !! coef 1.2 modified in v2
+
+
+    *if,%name_deep%deepZ(jj,11),le,0,then
+        %name_deep%deepZ(jj,12)=1.2+0.2*abs(%name_deep%deepZ(jj,11))/fctm(1,1) !! coef 1.2 modified in v2
+    *else
+        *if,1,gt,1.2+0.9*%name_deep%deepZ(jj,11)/fctm(1,1),then
+            %name_deep%deepZ(jj,12)=1.2+0.9*%name_deep%deepZ(jj,11)/fctm(1,1)
+        *else
+            %name_deep%deepZ(jj,12)=1
+        *endif
+    *endif
+
+
+
+    *if,1,gt,maxctanz(1,1),then
+        temp=1
+    *else
+        temp=maxctanz(1,1)
+    *endif
+
+    *if,temp,le,%name_deep%deepZ(jj,12),then
+        %name_deep%deepZ(jj,12)=temp
+    *endif
+ cotant(1,1)=%name_deep%deepZ(jj,12)   
+alpha_s(1,1)=atan(1/cotant(1,1))
+    !Demand of steel due to torsion (cm2/m) transv
+    !Ted/(2*Ak*fywd*cot(theta))
+
+    !=10*(E5)/(2*Deep_beam_data!$B$28*Deep_beam_data!$B$32*Deep_beam_data!$B$29)
+
+    %name_deep%deepZ(jj,6)=10*%name_deep%deepZ(jj,5)/(2*Aenc(1,1)*fywd(1,1)*cotant(1,1))
+
+    ! Demand of steel due to torsion (cm2) long
+    !Ted*cot(theta)/(2*Ak*fyd*)
+
+    !=10*(E5*Deep_beam_data!$B$23*Deep_beam_data!$B$29)/(2*Deep_beam_data!$B$28*Deep_beam_data!$B$33)
+
+    %name_deep%deepZ(jj,7)=10*(%name_deep%deepZ(jj,5)*peritor(1,1)*cotant(1,1))/(2*Aenc(1,1)*fyd(1,1))
+
+    !T rd,max
+    !2*v*acw*fcd*Ak*tef*sin(theta)*cos(theta)
+
+    !=(2*Deep_beam_data!$B$39*Deep_beam_data!$B$38*Deep_beam_data!$B$34*Deep_beam_data!$B$28*Deep_beam_data!$B$22*SIN(RADIANS(Deep_beam_data!$B$17))*COS(RADIANS(Deep_beam_data!$B$17)))*1000
+
+    %name_deep%deepZ(jj,8)=(2*v(1,1)*acw(1,1)*fcd(1,1)*Aenc(1,1)*eff_wt(1,1)*sin(alpha_s(1,1))*cos(alpha_s(1,1)))*1000
+
+    !Available reinforcement shear (cm2)
+    !2*(Astirrup-Ator_trans)+Atie
+
+    !=2*(Deep_beam_data!$B$10-Shear_deep_beam_y!F5)+Deep_beam_data!$B$16
+
+    %name_deep%deepZ(jj,9)=2*(Ast(1,1)-%name_deep%deepZ(jj,6))+Azt(1,1)
+
+    !Demand of steel due to shear EC2 (cm2/m)
+    !Ved/(d*fywd*cot(?))
+
+    !=(D5/(Deep_beam_data!$B$27*Deep_beam_data!$B$29*Deep_beam_data!$B$32))*10
+
+    %name_deep%deepZ(jj,10)=(%name_deep%deepZ(jj,4)/(levz(1,1)*cotant(1,1)*fywd(1,1)))*10
+
+
+
+    !Vfd ITER CODE
+    ![-]
+    !SI(K5<0;1000*0.068*Deep_beam_data!$B$3*Deep_beam_data!$B$25*(1-L5/4)*Deep_beam_data!$B$34;1000*0.068*Deep_beam_data!$B$3*Deep_beam_data!$B$25*(1-0.36/L5)*Deep_beam_data!$B$34)
+
+    *if,%name_deep%deepZ(jj,11),le,0,then
+        %name_deep%deepZ(jj,13)=1000*0.068*bw(1,1)*levz(1,1)*(1-%name_deep%deepZ(jj,12)/4)*fcd(1,1)
+    *else
+        %name_deep%deepZ(jj,13)=1000*0.068*bw(1,1)*levz(1,1)*(1-0.36/%name_deep%deepZ(jj,12))*fcd(1,1)
+    *endif
+
+    !Demand of steel due to shear ITER CODE (cm2/m)
+    !'max(0;(Ved-Vfed)/(d*fywd*cot(θ)))
+    !=MAX(0;((D5-M5)/(Deep_beam_data!$B$27*Deep_beam_data!$B$29*Deep_beam_data!$B$32))*10)
+
+
+
+    %name_deep%deepZ(jj,14)=((%name_deep%deepZ(jj,4)-%name_deep%deepZ(jj,13))/(levz(1,1)*cotant(1,1)*fywd(1,1)))*10
+
+    *if,0,gt,%name_deep%deepZ(jj,14),then
+        %name_deep%deepZ(jj,14)=0
+    *endif
+
+    ! Safety margin due to steel
+    ! (Available/Demand)
+    ! =I5/MAX(J5;N5)
+
+    *if,%name_deep%deepZ(jj,10),gt,%name_deep%deepZ(jj,14),then
+        temp=%name_deep%deepZ(jj,10)
+    *else
+        temp=%name_deep%deepZ(jj,14)
+    *endif
+
+    %name_deep%deepZ(jj,15)=%name_deep%deepZ(jj,9)/temp
+
+    ! V rd,max EC2
+    ! αcw*ν1*bw*d*fcd*(cotθ/(1+cotθ²))
+    ! =1000*(Deep_beam_data!$B$38*Deep_beam_data!$B$2*Deep_beam_data!$B$27*Deep_beam_data!$B$37*Deep_beam_data!$B$34)/(Deep_beam_data!$B$29+1/Deep_beam_data!$B$29)
+
+    %name_deep%deepZ(jj,16)=1000*(acw(1,1)*bw(1,1)*levz(1,1)*v1(1,1)*fcd(1,1))/(cotant(1,1)+1/cotant(1,1))
+
+    ! V rd,max ITER CODE
+    ! αcw*ν1*bw*d*fcd*(cotθ/(1+cotθ²))
+    ! =1000*(Deep_beam_data!$B$38*Deep_beam_data!$B$2*Deep_beam_data!$B$27*Deep_beam_data!$B$37*Deep_beam_data!$B$34)/(L5+1/L5)
+
+    %name_deep%deepZ(jj,17)=1000*(acw(1,1)*bw(1,1)*levz(1,1)*v1(1,1)*fcd(1,1))/(%name_deep%deepZ(jj,12)+1/%name_deep%deepZ(jj,12))
+
+    ! Strut margin
+    ! 1/(Ted/Trd+Ved/Vrd)
+    ! =1/((E5/H5)+(D5/MAX(P5;Q5)))
+
+    *if,%name_deep%deepZ(jj,16),gt,%name_deep%deepZ(jj,17),then
+        temp=%name_deep%deepZ(jj,16)
+    *else
+        temp=%name_deep%deepZ(jj,17)
+    *endif
+
+    %name_deep%deepZ(jj,18)=1/((%name_deep%deepZ(jj,5)/%name_deep%deepZ(jj,8))+(%name_deep%deepZ(jj,4)/temp))
+
+
+    ! Margin
+    ! Min (safety_steel;Strut_margin)
+    ! =MIN(O5;R5)
+
+    *if,%name_deep%deepZ(jj,15),gt,%name_deep%deepZ(jj,18),then
+         %name_deep%deepZ(jj,19)=%name_deep%deepZ(jj,18)
+    *else
+        %name_deep%deepZ(jj,19)=%name_deep%deepZ(jj,15)
+    *endif
+
+*enddo
+
+
+!shallowY
+! *DIM,%name_shallow%shallowY,,3,19
+*DIM,%name_shallow%shallowY,,%to_read_shallow%,19
+! *do,jj,1,3
+*do,jj,1,%to_read_shallow%
+    %name_shallow%shallowY(jj,1)=%name_shallow%(jj,1) !ELEMENT
+	%name_shallow%shallowY(jj,2)=%name_shallow%(jj,2) !CASE
+
+    !Nd (kN)
+        *if,%name_shallow%(jj,3),lt,0,then
+            *if,%name_shallow%(jj,3),lt,%name_shallow%(jj,6),then
+                %name_shallow%shallowY(jj,3)=%name_shallow%(jj,3)*10
+            *else
+                %name_shallow%shallowY(jj,3)=%name_shallow%(jj,6)*10
+            *endif
+        *else
+            *if,%name_shallow%(jj,3),gt,%name_shallow%(jj,6),then
+                %name_shallow%shallowY(jj,3)=%name_shallow%(jj,3)*10
+            *else
+                %name_shallow%shallowY(jj,3)=%name_shallow%(jj,6)*10
+            *endif
+        *endif
+
+    !Vy (kN)
+            *if,abs(%name_shallow%(jj,4)),gt,abs(%name_shallow%(jj,7)),then
+                %name_shallow%shallowY(jj,4)=abs(%name_shallow%(jj,4))*10
+            *else
+                %name_shallow%shallowY(jj,4)=abs(%name_shallow%(jj,7))*10
+            *endif
+
+    !~ !Vz (kN)
+            !~ *if,abs(%name_shallow%(jj,5)),gt,abs(%name_shallow%(jj,8)),then
+                !~ %name_shallow%shallowY(jj,5)=abs(%name_shallow%(jj,5))*10
+            !~ *else
+                !~ %name_shallow%shallowY(jj,5)=abs(%name_shallow%(jj,8))*10
+            !~ *endif
+
+    !T (kN.m)
+            *if,abs(%name_shallow%(jj,9)),gt,abs(%name_shallow%(jj,12)),then
+                %name_shallow%shallowY(jj,5)=abs(%name_shallow%(jj,9))*10
+            *else
+                %name_shallow%shallowY(jj,5)=abs(%name_shallow%(jj,12))*10
+            *endif
+!Mean compressive stress (MPa)
+    !scp = Ned/A
+
+    !=0.001*C5/Deep_beam_data!$B$20
+
+    %name_shallow%shallowY(jj,11)=0.001*%name_shallow%shallowY(jj,3)/Acro(2,1)
+
+    !Cot (theta)
+    ![-]
+
+    !=MIN(IF(K5<=0,1.2+0.2*ABS(K5)/Deep_beam_data!$B$36,MIN(1,1.2+0.9*K5/Deep_beam_data!$B$36)),MAX(Deep_beam_data!$B$30,1))
+
+
+    *if,%name_shallow%shallowY(jj,11),le,0,then
+        %name_shallow%shallowY(jj,12)=1.2+0.2*abs(%name_shallow%shallowY(jj,11))/fctm(2,1)
+    *else
+        *if,1,gt,1.2+0.9*%name_shallow%shallowY(jj,11)/fctm(2,1),then
+            %name_shallow%shallowY(jj,12)=1.2+0.9*%name_shallow%shallowY(jj,11)/fctm(2,1)
+        *else
+            %name_shallow%shallowY(jj,12)=1
+        *endif
+    *endif
+    
+    
+    *if,1,gt,maxctany(2,1),then
+        temp=1
+    *else
+        temp=maxctany(2,1)
+    *endif
+
+    *if,temp,le,%name_shallow%shallowY(jj,12),then
+        %name_shallow%shallowY(jj,12)=temp
+    *endif
+    
+cotant(2,1)=%name_shallow%shallowY(jj,12)
+alpha_s(2,1)=atan(1/cotant(2,1))
+    !Demand of steel due to torsion (cm2/m) transv
+    !Ted/(2*Ak*fywd*cot(theta))
+
+    !=10*(E5)/(2*Deep_beam_data!$B$28*Deep_beam_data!$B$32*Deep_beam_data!$B$29)
+
+    %name_shallow%shallowY(jj,6)=10*%name_shallow%shallowY(jj,5)/(2*Aenc(2,1)*fywd(2,1)*cotant(2,1))
+
+    ! Demand of steel due to torsion (cm2) long
+    !Ted*cot(theta)/(2*Ak*fyd*)
+
+    !=10*(E5*Deep_beam_data!$B$23*Deep_beam_data!$B$29)/(2*Deep_beam_data!$B$28*Deep_beam_data!$B$33)
+    !=10*(E5*Deep_beam_data!$B$23*Deep_beam_data!$B$29)/(2*Deep_beam_data!$B$28*Deep_beam_data!$B$33)
+
+    %name_shallow%shallowY(jj,7)=10*(%name_shallow%shallowY(jj,5)*peritor(2,1)*cotant(2,1))/(2*Aenc(2,1)*fyd(2,1))
+
+    !T rd,max
+    !2*v*acw*fcd*Ak*tef*sin(theta)*cos(theta)
+
+    !=(2*Deep_beam_data!$B$39*Deep_beam_data!$B$38*Deep_beam_data!$B$34*Deep_beam_data!$B$28*Deep_beam_data!$B$22*SIN(RADIANS(Deep_beam_data!$B$17))*COS(RADIANS(Deep_beam_data!$B$17)))*1000
+
+    %name_shallow%shallowY(jj,8)=(2*v(2,1)*acw(2,1)*fcd(2,1)*Aenc(2,1)*eff_wt(2,1)*sin(alpha_s(2,1))*cos(alpha_s(2,1)))*1000
+
+    !Available reinforcement shear (cm2)
+    !2*(Astirrup-Ator_trans)+Atie
+
+    !=2*(Deep_beam_data!$B$10-Shear_deep_beam_y!F5)+Deep_beam_data!$B$16
+
+    %name_shallow%shallowY(jj,9)=2*(Ast(2,1)-%name_shallow%shallowY(jj,6))+Ayt(2,1)
+
+    !Demand of steel due to shear EC2 (cm2/m)
+    !Ved/(d*fywd*cot(?))
+
+    !=(D5/(Deep_beam_data!$B$27*Deep_beam_data!$B$29*Deep_beam_data!$B$32))*10
+
+    %name_shallow%shallowY(jj,10)=(%name_shallow%shallowY(jj,4)/(levy(2,1)*cotant(2,1)*fywd(2,1)))*10
+
+    
+
+
+    !Vfd ITER CODE
+    ![-]
+    !SI(K5<0;1000*0,068*Deep_beam_data!$B$2*Deep_beam_data!$B$27*(1-L5/4)*Deep_beam_data!$B$34;1000*0,068*Deep_beam_data!$B$2*Deep_beam_data!$B$27*(1-0,36/L5)*Deep_beam_data!$B$34)
+    !SI(K5<0;1000*0.068*Shallow_beam_data!$B$2*Shallow_beam_data!$B$27*(1-L5/4)*Shallow_beam_data!$B$34;1000*0.068*Shallow_beam_data!$B$2*Shallow_beam_data!$B$27*(1-0.36/L5)*Shallow_beam_data!$B$34)
+
+    *if,%name_shallow%shallowY(jj,11),le,0,then
+        %name_shallow%shallowY(jj,13)=1000*0.068*h(2,1)*levy(2,1)*(1-%name_shallow%shallowY(jj,12)/4)*fcd(2,1)
+    *else
+        %name_shallow%shallowY(jj,13)=1000*0.068*h(2,1)*levy(2,1)*(1-0.36/%name_shallow%shallowY(jj,12))*fcd(2,1)
+    *endif
+
+    !Demand of steel due to shear ITER CODE (cm2/m)
+    !'max(0;(Ved-Vfed)/(d*fywd*cot(θ)))
+    !=MAX(0;((D5-M5)/(Deep_beam_data!$B$27*Deep_beam_data!$B$29*Deep_beam_data!$B$32))*10)
+
+
+    %name_shallow%shallowY(jj,14)=((%name_shallow%shallowY(jj,4)-%name_shallow%shallowY(jj,13))/(levy(2,1)*cotant(2,1)*fywd(2,1)))*10
+
+    *if,0,gt,%name_shallow%shallowY(jj,14),then
+        %name_shallow%shallowY(jj,14)=0
+    *endif
+
+    ! Safety margin due to steel
+    ! (Available/Demand)
+    ! =I5/MAX(J5;N5)
+
+    *if,%name_shallow%shallowY(jj,10),gt,%name_shallow%shallowY(jj,14),then
+        temp=%name_shallow%shallowY(jj,10)
+    *else
+        temp=%name_shallow%shallowY(jj,14)
+    *endif
+
+    %name_shallow%shallowY(jj,15)=%name_shallow%shallowY(jj,9)/temp
+
+    ! V rd,max EC2
+    ! αcw*ν1*bw*d*fcd*(cotθ/(1+cotθ²))
+    ! =1000*(Deep_beam_data!$B$38*Deep_beam_data!$B$2*Deep_beam_data!$B$27*Deep_beam_data!$B$37*Deep_beam_data!$B$34)/(Deep_beam_data!$B$29+1/Deep_beam_data!$B$29)
+
+    %name_shallow%shallowY(jj,16)=1000*(acw(2,1)*h(2,1)*levy(2,1)*v1(2,1)*fcd(2,1))/(cotant(2,1)+1/cotant(2,1))
+
+    ! V rd,max ITER CODE
+    ! αcw*ν1*bw*d*fcd*(cotθ/(1+cotθ²))
+    ! =1000*(Deep_beam_data!$B$38*Deep_beam_data!$B$2*Deep_beam_data!$B$27*Deep_beam_data!$B$37*Deep_beam_data!$B$34)/(L5+1/L5)
+
+    %name_shallow%shallowY(jj,17)=1000*(acw(2,1)*h(2,1)*levy(2,1)*v1(2,1)*fcd(2,1))/(%name_shallow%shallowY(jj,12)+1/%name_shallow%shallowY(jj,12))
+
+    ! Strut margin
+    ! 1/(Ted/Trd+Ved/Vrd)
+    ! =1/((E5/H5)+(D5/MAX(P5;Q5)))
+
+    *if,%name_shallow%shallowY(jj,16),gt,%name_shallow%shallowY(jj,17),then
+        temp=%name_shallow%shallowY(jj,16)
+    *else
+        temp=%name_shallow%shallowY(jj,17)
+    *endif
+
+    %name_shallow%shallowY(jj,18)=1/((%name_shallow%shallowY(jj,5)/%name_shallow%shallowY(jj,8))+(%name_shallow%shallowY(jj,4)/temp))
+
+    ! Margin
+    ! Min (safety_steel;Strut_margin)
+    ! =MIN(O5;R5)
+
+    *if,%name_shallow%shallowY(jj,15),gt,%name_shallow%shallowY(jj,18),then
+         %name_shallow%shallowY(jj,19)=%name_shallow%shallowY(jj,18)
+    *else
+        %name_shallow%shallowY(jj,19)=%name_shallow%shallowY(jj,15)
+    *endif
+
+    *enddo
+
+
+
+    !shallowZ
+    ! *DIM,%name_shallow%shallowZ,,3,19
+    *DIM,%name_shallow%shallowZ,,%to_read_shallow%,19
+    ! *do,jj,1,3
+    *do,jj,1,%to_read_shallow%
+        %name_shallow%shallowZ(jj,1)=%name_shallow%(jj,1) !ELEMENT
+        %name_shallow%shallowZ(jj,2)=%name_shallow%(jj,2) !CASE
+
+    !Nd (kN)
+        *if,%name_shallow%(jj,3),lt,0,then
+            *if,%name_shallow%(jj,3),lt,%name_shallow%(jj,6),then
+                %name_shallow%shallowZ(jj,3)=%name_shallow%(jj,3)*10
+            *else
+                %name_shallow%shallowZ(jj,3)=%name_shallow%(jj,6)*10
+            *endif
+        *else
+            *if,%name_shallow%(jj,3),gt,%name_shallow%(jj,6),then
+                %name_shallow%shallowZ(jj,3)=%name_shallow%(jj,3)*10
+            *else
+                %name_shallow%shallowZ(jj,3)=%name_shallow%(jj,6)*10
+            *endif
+        *endif
+
+    !Vy (kN)
+            *if,abs(%name_shallow%(jj,5)),gt,abs(%name_shallow%(jj,8)),then
+                %name_shallow%shallowZ(jj,4)=abs(%name_shallow%(jj,5))*10
+            *else
+                %name_shallow%shallowZ(jj,4)=abs(%name_shallow%(jj,8))*10
+            *endif
+
+    !~ !Vz (kN)
+            !~ *if,abs(%name_shallow%(jj,5)),gt,abs(%name_shallow%(jj,8)),then
+                !~ %name_shallow%shallowZ(jj,5)=abs(%name_shallow%(jj,5))*10
+            !~ *else
+                !~ %name_shallow%shallowZ(jj,5)=abs(%name_shallow%(jj,8))*10
+            !~ *endif
+
+    !T (kN.m)
+            *if,abs(%name_shallow%(jj,9)),gt,abs(%name_shallow%(jj,12)),then
+                %name_shallow%shallowZ(jj,5)=abs(%name_shallow%(jj,9))*10
+            *else
+                %name_shallow%shallowZ(jj,5)=abs(%name_shallow%(jj,12))*10
+            *endif
+   !Mean compressive stress (MPa)
+    !scp = Ned/A
+
+    !=0.001*C5/Deep_beam_data!$B$20
+
+    %name_shallow%shallowZ(jj,11)=0.001*%name_shallow%shallowZ(jj,3)/Acro(2,1)
+
+    !Cot (theta)
+    ![-]
+
+    !=MIN(IF(K5<=0,1.2+0.2*ABS(K5)/Deep_beam_data!$B$36,MIN(1,1.2+0.9*K5/Deep_beam_data!$B$36)),MAX(Deep_beam_data!$B$30,1))
+
+
+    *if,%name_shallow%shallowZ(jj,11),le,0,then
+        %name_shallow%shallowZ(jj,12)=1.2+0.2*abs(%name_shallow%shallowZ(jj,11))/fctm(2,1)
+    *else
+        *if,1,gt,1.2+0.9*%name_shallow%shallowZ(jj,11)/fctm(2,1),then
+            %name_shallow%shallowZ(jj,12)=1.2+0.9*%name_shallow%shallowZ(jj,11)/fctm(2,1)
+        *else
+            %name_shallow%shallowZ(jj,12)=1
+        *endif
+    *endif
+    
+    *if,1,gt,maxctanz(2,1),then
+        temp=1
+    *else
+        temp=maxctanz(2,1)
+    *endif
+
+    *if,temp,le,%name_shallow%shallowZ(jj,12),then
+        %name_shallow%shallowZ(jj,12)=temp
+    *endif
+cotant(2,1)=%name_shallow%shallowZ(jj,12)
+alpha_s(2,1)=atan(1/cotant(2,1))
+    !Demand of steel due to torsion (cm2/m) transv
+    !Ted/(2*Ak*fywd*cot(theta))
+
+    !=10*(E5)/(2*Deep_beam_data!$B$28*Deep_beam_data!$B$32*Deep_beam_data!$B$29)
+
+    %name_shallow%shallowZ(jj,6)=10*%name_shallow%shallowZ(jj,5)/(2*Aenc(2,1)*fywd(2,1)*cotant(2,1))
+
+    ! Demand of steel due to torsion (cm2) long
+    !Ted*cot(theta)/(2*Ak*fyd*)
+
+    !=10*(E5*Deep_beam_data!$B$23*Deep_beam_data!$B$29)/(2*Deep_beam_data!$B$28*Deep_beam_data!$B$33)
+
+    %name_shallow%shallowZ(jj,7)=10*(%name_shallow%shallowZ(jj,5)*peritor(2,1)*cotant(2,1))/(2*Aenc(2,1)*fyd(2,1))
+
+    !T rd,max
+    !2*v*acw*fcd*Ak*tef*sin(theta)*cos(theta)
+
+    !=(2*Deep_beam_data!$B$39*Deep_beam_data!$B$38*Deep_beam_data!$B$34*Deep_beam_data!$B$28*Deep_beam_data!$B$22*SIN(RADIANS(Deep_beam_data!$B$17))*COS(RADIANS(Deep_beam_data!$B$17)))*1000
+
+    %name_shallow%shallowZ(jj,8)=(2*v(2,1)*acw(2,1)*fcd(2,1)*Aenc(2,1)*eff_wt(2,1)*sin(alpha_s(2,1))*cos(alpha_s(2,1)))*1000
+
+    !Available reinforcement shear (cm2)
+    !2*(Astirrup-Ator_trans)+Atie
+
+    !=2*(Deep_beam_data!$B$10-Shear_deep_beam_y!F5)+Deep_beam_data!$B$16
+
+    %name_shallow%shallowZ(jj,9)=2*(Ast(2,1)-%name_shallow%shallowZ(jj,6))+Azt(2,1)
+
+    !Demand of steel due to shear EC2 (cm2/m)
+    !Ved/(d*fywd*cot(?))
+
+    !=(D5/(Deep_beam_data!$B$27*Deep_beam_data!$B$29*Deep_beam_data!$B$32))*10
+
+    %name_shallow%shallowZ(jj,10)=(%name_shallow%shallowZ(jj,4)/(levz(2,1)*cotant(2,1)*fywd(2,1)))*10
+
+ 
+
+
+    !Vfd ITER CODE
+    ![-]
+    !SI(K5<0;1000*0.068*Shallow_beam_data!$B$3*Shallow_beam_data!$B$25*(1-L5/4)*Shallow_beam_data!$B$34;1000*0.068*Shallow_beam_data!$B$3*Shallow_beam_data!$B$25*(1-0.36/L5)*Shallow_beam_data!$B$34)
+
+    *if,%name_shallow%shallowZ(jj,11),le,0,then
+        %name_shallow%shallowZ(jj,13)=1000*0.068*bw(2,1)*levz(2,1)*(1-%name_shallow%shallowZ(jj,12)/4)*fcd(2,1)
+    *else
+        %name_shallow%shallowZ(jj,13)=1000*0.068*bw(2,1)*levz(2,1)*(1-0.36/%name_shallow%shallowZ(jj,12))*fcd(2,1)
+    *endif
+
+
+
+
+    !Demand of steel due to shear ITER CODE (cm2/m)
+    !'max(0;(Ved-Vfed)/(d*fywd*cot(θ)))
+    !=MAX(0;((D5-M5)/(Deep_beam_data!$B$27*Deep_beam_data!$B$29*Deep_beam_data!$B$32))*10)
+
+
+    %name_shallow%shallowZ(jj,14)=((%name_shallow%shallowZ(jj,4)-%name_shallow%shallowZ(jj,13))/(levz(2,1)*cotant(2,1)*fywd(2,1)))*10
+
+    *if,0,gt,%name_shallow%shallowZ(jj,14),then
+        %name_shallow%shallowZ(jj,14)=0
+    *endif
+
+    ! Safety margin due to steel
+    ! (Available/Demand)
+    ! =I5/MAX(J5;N5)
+
+    *if,%name_shallow%shallowZ(jj,10),gt,%name_shallow%shallowZ(jj,14),then
+        temp=%name_shallow%shallowZ(jj,10)
+    *else
+        temp=%name_shallow%shallowZ(jj,14)
+    *endif
+
+    %name_shallow%shallowZ(jj,15)=%name_shallow%shallowZ(jj,9)/temp
+
+    ! V rd,max EC2
+    ! αcw*ν1*bw*d*fcd*(cotθ/(1+cotθ²))
+    ! =1000*(Deep_beam_data!$B$38*Deep_beam_data!$B$2*Deep_beam_data!$B$27*Deep_beam_data!$B$37*Deep_beam_data!$B$34)/(Deep_beam_data!$B$29+1/Deep_beam_data!$B$29)
+    !=1000*(Deep_beam_data!$B$38*Deep_beam_data!$B$3*Deep_beam_data!$B$25*Deep_beam_data!$B$37*Deep_beam_data!$B$34)/(Deep_beam_data!$B$29+1/Deep_beam_data!$B$29)
+
+    %name_shallow%shallowZ(jj,16)=1000*(acw(2,1)*bw(2,1)*levz(2,1)*v1(2,1)*fcd(2,1))/(cotant(2,1)+1/cotant(2,1))
+
+    ! V rd,max ITER CODE
+    ! αcw*ν1*bw*d*fcd*(cotθ/(1+cotθ²))
+    ! =1000*(Deep_beam_data!$B$38*Deep_beam_data!$B$2*Deep_beam_data!$B$27*Deep_beam_data!$B$37*Deep_beam_data!$B$34)/(L5+1/L5)
+
+    %name_shallow%shallowZ(jj,17)=1000*(acw(2,1)*bw(2,1)*levz(2,1)*v1(2,1)*fcd(2,1))/(%name_shallow%shallowZ(jj,12)+1/%name_shallow%shallowZ(jj,12))
+
+    ! Strut margin
+    ! 1/(Ted/Trd+Ved/Vrd)
+    ! =1/((E5/H5)+(D5/MAX(P5;Q5)))
+
+    *if,%name_shallow%shallowZ(jj,16),gt,%name_shallow%shallowZ(jj,17),then
+        temp=%name_shallow%shallowZ(jj,16)
+    *else
+        temp=%name_shallow%shallowZ(jj,17)
+    *endif
+
+    %name_shallow%shallowZ(jj,18)=1/((%name_shallow%shallowZ(jj,5)/%name_shallow%shallowZ(jj,8))+(%name_shallow%shallowZ(jj,4)/temp))
+    
+    
+    
+    *if,%name_shallow%shallowZ(jj,15),gt,%name_shallow%shallowZ(jj,18),then
+         %name_shallow%shallowZ(jj,19)=%name_shallow%shallowZ(jj,18)
+    *else
+        %name_shallow%shallowZ(jj,19)=%name_shallow%shallowZ(jj,15)
+    *endif
+    
+    
+*enddo
+
+!!!!!!!!!!!!!!!
+
+
+! Output a 2D array
+
+*CFOPEN,'%name_deep%_results_deepY',csv
+!Output results
+*do,jj,1,%to_read_deep%
+
+    *do,kk,1,19
+        !Define the number you want to output as NumOut. Putting the array directly into *VWRITE will cause a problem
+        NumOut = %name_deep%deepY(jj,kk)
+        
+        !Write the number
+        !The command is in two lines. The second line is fortran formatting codes. Can be changed. E20.8 is scientific  notation
+        !$ forces no new line
+        *VWRITE,NumOut,','
+(E20.8,A1,$)
+    *enddo
+
+    !New line character
+    *VWRITE,' '
+(A1)
+
+*enddo
+*cfclose
+
+*CFOPEN,'%name_deep%_results_depZ',csv
+!Output results
+*do,jj,1,%to_read_deep%
+
+    *do,kk,1,19
+        !Define the number you want to output as NumOut. Putting the array directly into *VWRITE will cause a problem
+        NumOut = %name_deep%deepZ(jj,kk)
+        
+        !Write the number
+        !The command is in two lines. The second line is fortran formatting codes. Can be changed. E20.8 is scientific  notation
+        !$ forces no new line
+        *VWRITE,NumOut,','
+(E20.8,A1,$)
+    *enddo
+
+    !New line character
+    *VWRITE,' '
+(A1)
+
+*enddo
+*cfclose
+
+
+
+*CFOPEN,'%name_shallow%_results_shallowY',csv
+!Output results
+*do,jj,1,%to_read_shallow%
+
+    *do,kk,1,19
+        !Define the number you want to output as NumOut. Putting the array directly into *VWRITE will cause a problem
+        NumOut = %name_shallow%shallowY(jj,kk)
+        
+        !Write the number
+        !The command is in two lines. The second line is fortran formatting codes. Can be changed. E20.8 is scientific  notation
+        !$ forces no new line
+        *VWRITE,NumOut,','
+(E20.8,A1,$)
+    *enddo
+
+    !New line character
+    *VWRITE,' '
+(A1)
+
+*enddo
+*cfclose
+
+*CFOPEN,'%name_shallow%_results_shallowZ',csv
+!Output results
+*do,jj,1,%to_read_shallow%
+
+    *do,kk,1,19
+        !Define the number you want to output as NumOut. Putting the array directly into *VWRITE will cause a problem
+        NumOut = %name_shallow%shallowZ(jj,kk)
+        
+        !Write the number
+        !The command is in two lines. The second line is fortran formatting codes. Can be changed. E20.8 is scientific  notation
+        !$ forces no new line
+        *VWRITE,NumOut,','
+(E20.8,A1,$)
+    *enddo
+
+    !New line character
+    *VWRITE,' '
+(A1)
+
+*enddo
+*cfclose
+
+! /eof
+
+!!! Output a 2D array
+!!
+!!*CFOPEN,'%name_%_results',csv
+!!!Output results
+!!*do,jj,1,%to_read%
+!!
+!!    *do,kk,1,19
+!!        !Define the number you want to output as NumOut. Putting the array directly into *VWRITE will cause a problem
+!!        NumOut = %name_%shallowZ(jj,kk)
+!!        
+!!        !Write the number
+!!        !The command is in two lines. The second line is fortran formatting codes. Can be changed. E20.8 is scientific  notation
+!!        !$ forces no new line
+!!        *VWRITE,NumOut,','
+!!(E20.8,A1,$)
+!!    *enddo
+!!
+!!    !New line character
+!!    *VWRITE,' '
+!!(A1)
+!!
+!!*enddo
+!!*cfclose
