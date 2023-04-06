@@ -1,51 +1,50 @@
 import math
+import numpy as np
 
+# Define the input parameters
+data = {
+    'h': [1.3, 0.455],
+    'bw': [1.5, 1.5],
+    'fck': [90, 90],
+    'fys': [500, 500],
+    'fs': [1.15, 1.15],
+    'fc': [1.5, 1.5],
+    'ds': [16, 14],
+    'ss': [100, 100],
+    'Ast': [60.32, 15.39],
+    'dtz': [14, 14],
+    'stz': [200, 200],
+    'Azt': [69.3, 38.5],
+    'dty': [14, 14],
+    'sty': [200, 200],
+    'Ayt': [30.8, 7.7],
+    'alpha_s': [33.69 * math.pi/180, 45 * math.pi/180],
+    'b_span': [2.690, 1.40]
+}
 
-def main():
-    # Define input data
-    data = {
-        'h': [1.3, 0.455],
-        'bw': [1.5, 1.5],
-        'fck': [90, 90],
-        'fys': [500, 500],
-        'fs': [1.15, 1.15],
-        'fc': [1.5, 1.5],
-        'ds': [16, 14],
-        'ss': [100, 100],
-        'Ast': [60.32, 15.39],
-        'dtz': [14, 14],
-        'stz': [200, 200],
-        'Azt': [69.3, 38.5],
-        'dty': [14, 14],
-        'sty': [200, 200],
-        'Ayt': [30.8, 7.7],
-        'alpha_s': [33.69 * math.pi / 180, 45 * math.pi / 180],
-        'b_span': [2.69, 1.40]
-    }
-
-    # Initialize output data
-    Acro = [[0, 0] for _ in range(2)]
-    peri = [[0, 0] for _ in range(2)]
-    eff_wt = [[0, 0] for _ in range(2)]
-    eff_wt_aux = [[0.001 * (35 + 16 + 40 + 16 / 2), 0.001 * (35 + 16 / 2)] for _ in range(2)]
-    peritor = [[0, 0] for _ in range(2)]
-    effz = [[0, 0] for _ in range(2)]
-    levz = [[0, 0] for _ in range(2)]
-    effy = [[0, 0] for _ in range(2)]
-    levy = [[0, 0] for _ in range(2)]
-    Aenc = [[0, 0] for _ in range(2)]
-    cotant = [[0, 0] for _ in range(2)]
-    maxctany = [[0, 0] for _ in range(2)]
-    maxctanz = [[0, 0] for _ in range(2)]
-    fywd = [[0, 0] for _ in range(2)]
-    fyd = [[0, 0] for _ in range(2)]
-    fcd = [[0, 0] for _ in range(2)]
-    fcm = [[0, 0] for _ in range(2)]
-    fctm = [[0, 0] for _ in range(2)]
-    v1 = [[0, 0] for _ in range(2)]
-    acw = [[0, 0] for _ in range(2)]
-    v = [[0, 0] for _ in range(2)]
-    v_oper = []
+def calculate_beam_data(data):
+    Acro = []
+    peri = []
+    eff_wt = []
+    eff_wt_aux = []
+    eff_wt_aux.append([0.001 * (35 + 16 + 40 + 16 / 2), 0.001 * (35 + 16 / 2)])
+    peritor = []
+    effz = []
+    levz = []
+    effy = []
+    levy = []
+    Aenc = []
+    cotant = []
+    maxctany = []
+    maxctanz = []
+    fywd = []
+    fyd = []
+    fcd = []
+    fcm = []
+    fctm = []
+    v1 = []
+    acw = []
+    v = []
 
     for jj in range(2):
         # Acro
@@ -111,3 +110,80 @@ def main():
     acw.append([1, 0])
     # v
     v.append([0.6 * (1 - data['fck'][jj] / 250), 0])
+
+# call the calculate_beam_data function
+results = calculate_beam_data(data)
+
+#Print the results
+print(results)
+
+# def calculate_shear_reinforcement(data):
+#     # Extract the required data from the input data
+#     shear_force = data['Shear force (kN)'].values[0]
+#     concrete_area = data['Concrete area (mm2)'].values[0]
+#     concrete_strength = data['Concrete strength (MPa)'].values[0]
+#     beam_width = data['Beam width (mm)'].values[0]
+#     effective_depth = data['Effective depth (mm)'].values[0]
+#     bar_diameter = data['Bar diameter (mm)'].values[0]
+#     bar_spacing = data['Bar spacing (mm)'].values[0]
+#
+#     # Calculate the required shear reinforcement
+#     alpha_v = 0.5 + 0.25 * (beam_width - bar_diameter) / bar_spacing
+#     v_rdc = 0.27 * math.sqrt(concrete_strength) * (100 * bar_diameter / bar_spacing - 1) * bar_diameter / 1000
+#     v_min = 0.035 * math.sqrt(concrete_strength) * effective_depth / 1000
+#     v_ed = shear_force * 1000 / (alpha_v * concrete_area)
+#
+#     if v_ed <= v_rdc:
+#         return 0
+#     else:
+#         return max(v_min, v_ed) * concrete_area / (0.9 * bar_diameter)
+#
+#
+# def check_input_data(data):
+#     # Check the input data for errors
+#     errors = []
+#
+#     # Check the shear force
+#     if data['Shear force (kN)'].values[0] <= 0:
+#         errors.append('Shear force must be greater than 0.')
+#
+#     # Check the concrete area
+#     if data['Concrete area (mm2)'].values[0] <= 0:
+#         errors.append('Concrete area must be greater than 0.')
+#
+#     # Check the concrete strength
+#     if data['Concrete strength (MPa)'].values[0] <= 0:
+#         errors.append('Concrete strength must be greater than 0.')
+#
+#     # Check the beam width
+#     if data['Beam width (mm)'].values[0] <= 0:
+#         errors.append('Beam width must be greater than 0.')
+#
+#     # Check the effective depth
+#     if data['Effective depth (mm)'].values[0] <= 0:
+#         errors.append('Effective depth must be greater than 0.')
+#
+#     # Check the bar diameter
+#     if data['Bar diameter (mm)'].values[0] <= 0:
+#         errors.append('Bar diameter must be greater than 0.')
+#
+#     # Check the bar spacing
+#     if data['Bar spacing (mm)'].values[0] <= 0:
+#         errors.append('Bar spacing must be greater than 0.')
+#
+#     if errors:
+#         # If there are errors, raise an exception with the error messages
+#         raise ValueError('\n'.join(errors))
+#
+#
+# # Read the input file
+# data = pd.read_excel('path/to/input_file.xlsx')
+#
+# try:
+#     check_input_data(data)
+#     shear_reinforcement = calculate_shear_reinforcement(data)
+#     print(shear_reinforcement)
+# except ValueError as e:
+#     # If there are errors, print the error message
+#     print('Input data is invalid:')
+#     print(str(e))
