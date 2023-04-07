@@ -177,7 +177,7 @@ def read_csv_file(filename, comment_char, columns):
     # return the resulting dataframe
     return df
 
-def add_columns(df):
+def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements):
     """
     Adds new columns to the dataframe.
 
@@ -185,6 +185,15 @@ def add_columns(df):
 
     returns: pandas.DataFrame - the modified dataframe.
     """
+
+    # Filter dataframe based on beam element number
+    if df.iloc[0]['ElemNo'] in deep_beam_elements:
+        Acro = beam_data['Acro'][0][0]
+    elif df.iloc[0]['ElemNo'] in shallow_beam_elements:
+        Acro = beam_data['Acro'][1][0]
+    else:
+        raise ValueError('Invalid beam element')
+
     # calculate the new N column
     df['N'] = np.where(df['N_OR'] < 0, np.minimum(df['N_OR'], df['N_EX']), np.maximum(df['N_OR'], df['N_EX']))
 
@@ -197,9 +206,9 @@ def add_columns(df):
     # calculate the Tors column
     df['Tors'] = np.maximum(np.abs(df['TORS_OR']), np.abs(df['TORS_EX']))
 
-    # calculate the mean compressive stress (MPa)
-    # scp = Ned/A
-    # df['Scp'] =
+    # Mean compressive stress (MPa)
+    for i, data in enumerate([beam_data['deep_beam_data'], beam_data['shallow_beam_data']]):
+        df[f'Sigma_cp_{i}'] = 0.001 * df['N'] / data['Acro'][0]
 
     # return the modified dataframe
     return df
@@ -341,8 +350,104 @@ def main():
     df = read_csv_file(filename, comment_char, columns)
 
     # Calculate additional columns
-    deep_beam_df = add_columns(pd.DataFrame(calculate_beam_data['deep_beam_data']))
-    shallow_beam_df = add_columns(pd.DataFrame(calculate_beam_data['shallow_beam_data']))
+    beam_data = calculate_beam_data(data)
+    # deep_beam_df = add_columns(df,beam_data)
 
     # Filter the DF based on element numbers
-    df = filter_beam_type(df, deep_beam_elements, shallow_beam_elements)
+    # df = filter_beam_type(df, deep_beam_elements, shallow_beam_elements)
+    deep_beam_df = add_columns(df, beam_data, deep_beam_elements, [])
+    shallow_beam_df = add_columns(df, beam_data, [], shallow_beam_elements)
+
+    # Print resulting dataframe
+    print(df)
+
+    # Calculate deep beam properties
+    df_deep = df[df['beam_type'] == "deep"]
+    df_deep_props = calculate_beam_properties(df_deep, "deep")
+
+    # Calculate shallow beam properties
+    df_shallow = df[df['beam_type'] == "shallow"]
+    df_shallow_props = calculate_beam_properties(df_shallow, "shallow")
+
+    # Combine results into a single dataframe
+    df_props = pd.concat([df_deep_props, df_shallow_props])
+
+    # Write results to output file
+    df_props.to_excel("output_data.xlsx", index=False)
+
+
+
+if __name__ == '__main__':
+    main()
+
+
+# def calculate_shear_reinforcement(data):
+#     # Extract the required data from the input data
+#     shear_force = data['Shear force (kN)'].values[0]
+#     concrete_area = data['Concrete area (mm2)'].values[0]
+#     concrete_strength = data['Concrete strength (MPa)'].values[0]
+#     beam_width = data['Beam width (mm)'].values[0]
+#     effective_depth = data['Effective depth (mm)'].values[0]
+#     bar_diameter = data['Bar diameter (mm)'].values[0]
+#     bar_spacing = data['Bar spacing (mm)'].values[0]
+#
+#     # Calculate the required shear reinforcement
+#     alpha_v = 0.5 + 0.25 * (beam_width - bar_diameter) / bar_spacing
+#     v_rdc = 0.27 * math.sqrt(concrete_strength) * (100 * bar_diameter / bar_spacing - 1) * bar_diameter / 1000
+#     v_min = 0.035 * math.sqrt(concrete_strength) * effective_depth / 1000
+#     v_ed = shear_force * 1000 / (alpha_v * concrete_area)
+#
+#     if v_ed <= v_rdc:
+#         return 0
+#     else:
+#         return max(v_min, v_ed) * concrete_area / (0.9 * bar_diameter)
+#
+#
+# def check_input_data(data):
+#     # Check the input data for errors
+#     errors = []
+#
+#     # Check the shear force
+#     if data['Shear force (kN)'].values[0] <= 0:
+#         errors.append('Shear force must be greater than 0.')
+#
+#     # Check the concrete area
+#     if data['Concrete area (mm2)'].values[0] <= 0:
+#         errors.append('Concrete area must be greater than 0.')
+#
+#     # Check the concrete strength
+#     if data['Concrete strength (MPa)'].values[0] <= 0:
+#         errors.append('Concrete strength must be greater than 0.')
+#
+#     # Check the beam width
+#     if data['Beam width (mm)'].values[0] <= 0:
+#         errors.append('Beam width must be greater than 0.')
+#
+#     # Check the effective depth
+#     if data['Effective depth (mm)'].values[0] <= 0:
+#         errors.append('Effective depth must be greater than 0.')
+#
+#     # Check the bar diameter
+#     if data['Bar diameter (mm)'].values[0] <= 0:
+#         errors.append('Bar diameter must be greater than 0.')
+#
+#     # Check the bar spacing
+#     if data['Bar spacing (mm)'].values[0] <= 0:
+#         errors.append('Bar spacing must be greater than 0.')
+#
+#     if errors:
+#         # If there are errors, raise an exception with the error messages
+#         raise ValueError('\n'.join(errors))
+#
+#
+# # Read the input file
+# data = pd.read_excel('path/to/input_file.xlsx')
+#
+# try:
+#     check_input_data(data)
+#     shear_reinforcement = calculate_shear_reinforcement(data)
+#     print(shear_reinforcement)
+# except ValueError as e:
+#     # If there are errors, print the error message
+#     print('Input data is invalid:')
+#     print(str(e))
