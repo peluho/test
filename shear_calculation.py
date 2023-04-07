@@ -91,53 +91,53 @@ def calculate_beam_data(data):
         v.append([0.6 * (1 - data['fck'][jj] / 250), 0])
     # Create dictionaries for deep and shallow beam data
     deep_beam_data = {
-        'Acro': Acro[0],
-        'peri': peri[0],
-        'eff_wt': eff_wt[0],
-        'eff_wt_aux': eff_wt_aux[0],
-        'peritor': peritor[0],
-        'effz': effz[0],
-        'levz': levz[0],
-        'effy': effy[0],
-        'levy': levy[0],
-        'Aenc': Aenc[0],
-        'cotant': cotant[0],
-        'maxctany': maxctany[0],
-        'maxctanz': maxctanz[0],
-        'fywd': fywd[0],
-        'fyd': fyd[0],
-        'fcd': fcd[0],
-        'fcm': fcm[0],
-        'fctm': fctm[0],
-        'v1': v1[0],
-        'acw': acw[0],
-        'v': v[0],
-        'v_oper': v_oper[0]
+        0: {'name': 'Acro', 'unit': 'm^2', 'value': Acro[0]},
+        1: {'name': 'peri', 'unit': 'm', 'value': peri[0]},
+        2: {'name': 'eff_wt', 'unit': 'm', 'value': eff_wt[0]},
+        3: {'name': 'eff_wt_aux', 'unit': 'm', 'value': eff_wt_aux[0]},
+        4: {'name': 'peritor', 'unit': 'm', 'value': peritor[0]},
+        5: {'name': 'effz', 'unit': 'm', 'value': effz[0]},
+        6: {'name': 'levz', 'unit': 'm', 'value': levz[0]},
+        7: {'name': 'effy', 'unit': 'm', 'value': effy[0]},
+        8: {'name': 'levy', 'unit': 'm', 'value': levy[0]},
+        9: {'name': 'Aenc', 'unit': 'm^2', 'value': Aenc[0]},
+        10: {'name': 'cotant', 'unit': '', 'value': cotant[0]},
+        11: {'name': 'maxctany', 'unit': 'm', 'value': maxctany[0]},
+        12: {'name': 'maxctanz', 'unit': 'm', 'value': maxctanz[0]},
+        13: {'name': 'fywd', 'unit': 'MPa', 'value': fywd[0]},
+        14: {'name': 'fyd', 'unit': 'MPa', 'value': fyd[0]},
+        15: {'name': 'fcd', 'unit': 'MPa', 'value': fcd[0]},
+        16: {'name': 'fcm', 'unit': 'MPa', 'value': fcm[0]},
+        17: {'name': 'fctm', 'unit': 'MPa', 'value': fctm[0]},
+        18: {'name': 'v1', 'unit': '', 'value': v1[0]},
+        19: {'name': 'acw', 'unit': '', 'value': acw[0]},
+        20: {'name': 'v', 'unit': '', 'value': v[0]},
+        21: {'name': 'v_oper', 'unit': '', 'value': v_oper[0]}
     }
 
     shallow_beam_data = {
-        'Acro': Acro[1],
-        'peri': peri[1],
-        'eff_wt': eff_wt[1],
-        'eff_wt_aux': eff_wt_aux[1],
-        'peritor': peritor[1],
-        'effz': effz[1],
-        'levz': levz[1],
-        'effy': effy[1],
-        'levy': levy[1],
-        'Aenc': Aenc[1],
-        'cotant': cotant[1],
-        'maxctany': maxctany[1],
-        'maxctanz': maxctanz[1],
-        'fywd': fywd[1],
-        'fyd': fyd[1],
-        'fcd': fcd[1],
-        'fcm': fcm[1],
-        'fctm': fctm[1],
-        'v1': v1[1],
-        'acw': acw[1],
-        'v': v[1],
-        'v_oper': v_oper[1]
+        0: {'name': 'Acro', 'unit': 'm^2', 'value': Acro[1]},
+        1: {'name': 'peri', 'unit': 'm', 'value': peri[1]},
+        2: {'name': 'eff_wt', 'unit': 'm', 'value': eff_wt[1]},
+        3: {'name': 'eff_wt_aux', 'unit': 'm', 'value': eff_wt_aux[1]},
+        4: {'name': 'peritor', 'unit': 'm', 'value': peritor[1]},
+        5: {'name': 'effz', 'unit': 'm', 'value': effz[1]},
+        6: {'name': 'levz', 'unit': 'm', 'value': levz[1]},
+        7: {'name': 'effy', 'unit': 'm', 'value': effy[1]},
+        8: {'name': 'levy', 'unit': 'm', 'value': levy[1]},
+        9: {'name': 'Aenc', 'unit': 'm^2', 'value': Aenc[1]},
+        10: {'name': 'cotant', 'unit': '', 'value': cotant[1]},
+        11: {'name': 'maxctany', 'unit': 'm', 'value': maxctany[1]},
+        12: {'name': 'maxctanz', 'unit': 'm', 'value': maxctanz[1]},
+        13: {'name': 'fywd', 'unit': 'MPa', 'value': fywd[1]},
+        14: {'name': 'fyd', 'unit': 'MPa', 'value': fyd[1]},
+        15: {'name': 'fcd', 'unit': 'MPa', 'value': fcd[1]},
+        16: {'name': 'fcm', 'unit': 'MPa', 'value': fcm[1]},
+        17: {'name': 'fctm', 'unit': 'MPa', 'value': fctm[1]},
+        18: {'name': 'v1', 'unit': '', 'value': v1[1]},
+        19: {'name': 'acw', 'unit': '', 'value': acw[1]},
+        20: {'name': 'v', 'unit': '', 'value': v[1]},
+        21: {'name': 'v_oper', 'unit': '', 'value': v_oper[1]}
     }
 
     # Return a dictionary containing deep and shallow beam data
@@ -185,14 +185,15 @@ def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements):
 
     returns: pandas.DataFrame - the modified dataframe.
     """
-
     # Filter dataframe based on beam element number
-    if df.iloc[0]['ElemNo'] in deep_beam_elements:
-        Acro = beam_data['Acro'][0][0]
-    elif df.iloc[0]['ElemNo'] in shallow_beam_elements:
-        Acro = beam_data['Acro'][1][0]
-    else:
-        raise ValueError('Invalid beam element')
+    df = df[df['ElemNo'].isin(deep_beam_elements + shallow_beam_elements)]
+    # # Filter dataframe based on beam element number
+    # if df.iloc[0]['ElemNo'] in deep_beam_elements:
+    #     Acro = beam_data['Acro'][0][0]
+    # elif df.iloc[0]['ElemNo'] in shallow_beam_elements:
+    #     Acro = beam_data['Acro'][1][0]
+    # else:
+    #     raise ValueError('Invalid beam element')
 
     # calculate the new N column
     df['N'] = np.where(df['N_OR'] < 0, np.minimum(df['N_OR'], df['N_EX']), np.maximum(df['N_OR'], df['N_EX']))
@@ -206,11 +207,13 @@ def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements):
     # calculate the Tors column
     df['Tors'] = np.maximum(np.abs(df['TORS_OR']), np.abs(df['TORS_EX']))
 
-    # Mean compressive stress (MPa)
-    for i, data in enumerate([beam_data['deep_beam_data'], beam_data['shallow_beam_data']]):
-        df[f'Sigma_cp_{i}'] = 0.001 * df['N'] / data['Acro'][0]
+    # Calculate the Sigma_cp column based on element type
+    df['Sigma_cp'] = 0.0  # initialize to zero
+    df.loc[df['ElemNo'].isin(deep_beam_elements), 'Sigma_cp'] = df['N'] / beam_data[0,]['Acro'][0]
+    df.loc[df['ElemNo'].isin(shallow_beam_elements), 'Sigma_cp'] = df['N'] / beam_data[1,]['Acro'][0]
 
-    # return the modified dataframe
+    df['Sigma_cp'] *= 1E-6  # convert to MPa
+
     return df
 
 def filter_beam_type(df, deep_beam_elements, shallow_beam_elements):
@@ -354,9 +357,9 @@ def main():
     # deep_beam_df = add_columns(df,beam_data)
 
     # Filter the DF based on element numbers
-    # df = filter_beam_type(df, deep_beam_elements, shallow_beam_elements)
-    deep_beam_df = add_columns(df, beam_data, deep_beam_elements, [])
-    shallow_beam_df = add_columns(df, beam_data, [], shallow_beam_elements)
+    df = filter_beam_type(df, deep_beam_elements, shallow_beam_elements)
+    deep_beam_df = add_columns(df[0], beam_data, deep_beam_elements, [])
+    shallow_beam_df = add_columns(df[1], beam_data, [], shallow_beam_elements)
 
     # Print resulting dataframe
     print(df)
