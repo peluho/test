@@ -213,78 +213,93 @@ def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements):
 
     # Calculate the Sigma_cp column based on element type
     df['Sigma_cp'] = 0.0  # initialize to zero
-    df.loc[df['ElemNo'].isin(deep_beam_elements), 'Sigma_cp'] = df['N'] / beam_data['deep_beam_data']['Acro']['value'][0]
-    df.loc[df['ElemNo'].isin(shallow_beam_elements), 'Sigma_cp'] = df['N'] / beam_data['shallow_beam_data']['Acro']['value'][0]
+    df.loc[df['ElemNo'].isin(deep_beam_elements), 'Sigma_cp'] = df['N'] / beam_data['deep_beam_data']['Acro']['value'][
+        0]
+    df.loc[df['ElemNo'].isin(shallow_beam_elements), 'Sigma_cp'] = df['N'] / \
+                                                                   beam_data['shallow_beam_data']['Acro']['value'][0]
 
     df['Sigma_cp'] *= 1E-6  # convert to MPa
 
     # Calculate Cot (theta)
-    df['cot_theta'] = 0  # initialize the column to 0
-    df.loc[df['ElemNo'].isin(deep_beam_elements), 'cot_theta']= df.apply(lambda row: 1.2 + 0.2 * abs(row['Sigma_cp']) / beam_data['deep_beam_data']['fctm']['value'][0] if row['Sigma_cp'] <= 0 else max(1, 1.2 + 0.9 * row['Sigma_cp'] / beam_data['deep_beam_data']['fctm']['value'][0]), axis=1)
-    df.loc[df['ElemNo'].isin(shallow_beam_elements), 'cot_theta'] = df.apply(lambda row: 1.2 + 0.2 * abs(row['Sigma_cp']) / beam_data['shallow_beam_data']['fctm']['value'][0] if row['Sigma_cp'] <= 0 else max(1, 1.2 + 0.9 * row['Sigma_cp'] / beam_data['shallow_beam_data']['fctm']['value'][0]), axis=1)
+    df['cot_theta'] = np.zeros(len(df))
+    deep_beam_mask = df['ElemNo'].isin(deep_beam_elements)
+    shallow_beam_mask = df['ElemNo'].isin(shallow_beam_elements)
 
+    df['cot_theta'][deep_beam_mask] = 1.2 + 0.2 * np.abs(df['Sigma_cp'][deep_beam_mask]) / \
+                                      beam_data['deep_beam_data']['fctm']['value'][0]
+    df['cot_theta'][~deep_beam_mask] = 1.2 + 0.2 * np.abs(df['Sigma_cp'][~deep_beam_mask]) / \
+                                       beam_data['shallow_beam_data']['fctm']['value'][0]
+
+    df['cot_theta'] = np.maximum(df['cot_theta'], df['temp_cot_theta'])
+
+    # Calculate max ctan Y
     # TODO: this part needs to be reviewed
     #Calculate max ctan Y
-    df['temp_cot_theta'] = 0  # initialize the column to 0
-    df.loc[df['ElemNo'].isin(deep_beam_elements), 'temp_cot_theta'] = df.apply(lambda row: max(1, beam_data['deep_beam_data']['maxctany']['value'][0]) if beam_data['deep_beam_data']['maxctany']['value'][0] < 1 else beam_data['deep_beam_data']['maxctany']['value'][0], axis=1)
-    df.loc[df['ElemNo'].isin(shallow_beam_elements), 'temp_cot_theta'] = df.apply(lambda row: max(1, beam_data['shallow_beam_data']['maxctany']['value'][0]) if beam_data['shallow_beam_data']['maxctany']['value'][0] < 1 else beam_data['shallow_beam_data']['maxctany']['value'][0], axis=1)
+    deep_beam_maxctany = beam_data['deep_beam_data']['maxctany']['value'][0]
+    shallow_beam_maxctany = beam_data['shallow_beam_data']['maxctany']['value'][0]
+    df['temp_cot_theta'][deep_beam_mask] = np.where(deep_beam_maxctany < 1, max(1, deep_beam_maxctany),
+                                                    deep_beam_maxctany)
+    df['temp_cot_theta'][~deep_beam_mask] = np.where(shallow_beam_maxctany < 1, max(1, shallow_beam_maxctany),
+                                                     shallow_beam_maxctany)
 
     # Calculate alpha
-    df['alpha_s'] = 0  # initialize the column to 0
-    df.loc[df['ElemNo'].isin(deep_beam_elements), 'alpha_s'] = df['temp_cot_theta'].apply(
-        lambda x: 1 / math.tan(beam_data['deep_beam_data']['maxctany']['value'][0]))
-    df.loc[df['ElemNo'].isin(shallow_beam_elements), 'alpha_s'] = df['temp_cot_theta'].apply(
-        lambda x: 1 / math.tan(beam_data['shallow_beam_data']['maxctany']['value'][0]))
+    df['alpha_s'] = np.zeros(len(df))
+    df['alpha_s'][deep_beam_mask] = np.degrees(1 / np.tan(beam_data['deep_beam_data']['maxctany']['value'][0]))
+    df['alpha_s'][~deep_beam_mask] = np.degrees(1 / np.tan(beam_data['shallow_beam_data']['maxctany']['value'][0]))
 
-    df['alpha_s'] = df['alpha_s'].apply(lambda x: math.degrees(x))
+    df['alpha_s'] = np.degrees(df['alpha_s'])
 
     # Demand of steel due to torsion (cm²/m) transv
     # Ted / (2 * Ak * fywd * cot(theta))
-    #= 10 * (E5) / (2 * Deep_beam_data!$B$28 * Deep_beam_data!$B$32 * Deep_beam_data!$B$29)
+    # = 10 * (E5) / (2 * Deep_beam_data!$B$28 * Deep_beam_data!$B$32 * Deep_beam_data!$B$29)
     df['Ted_t'] = 0  # initialize the column to 0
-    df.loc[df['ElemNo'].isin(deep_beam_elements), 'Ted_t'] = df.apply(
-        lambda x: x['Tors'] / (
-                    2 * beam_data['deep_beam_data']['Aenc']['value'][0] * beam_data['deep_beam_data']['fywd']['value'][
-                0] * x['temp_cot_theta']),
-        axis=1)
-    df.loc[df['ElemNo'].isin(shallow_beam_elements), 'Ted_t'] = df.apply(
-        lambda x: x['Tors'] / (
-                2 * beam_data['shallow_beam_data']['Aenc']['value'][0] * beam_data['shallow_beam_data']['fywd']['value'][
-            0] * x['temp_cot_theta']),
-        axis=1)
-    df['Ted_t'] *= 1E-02 #Change units to cm²/m
+    deep_beam_mask = df['ElemNo'].isin(deep_beam_elements)
+    shallow_beam_mask = df['ElemNo'].isin(shallow_beam_elements)
+    df.loc[deep_beam_mask, 'Ted_t'] = df['Tors'] / (
+            2 * beam_data['deep_beam_data']['Aenc']['value'][0] * beam_data['deep_beam_data']['fywd']['value'][0] *
+            df.loc[deep_beam_mask, 'cot_theta'])
+    df.loc[shallow_beam_mask, 'Ted_t'] = df['Tors'] / (
+            2 * beam_data['shallow_beam_data']['Aenc']['value'][0] * beam_data['shallow_beam_data']['fywd']['value'][
+        0] * df.loc[shallow_beam_mask, 'cot_theta'])
+    df['Ted_t'] *= 1E-02  # Change units to cm²/m
 
     # Demand of steel due to torsin (cm²/m) long
     # Ted*cot(theta)/(2*Ak*fyd)
     # = 10 * (E5) / (2 * Deep_beam_data!$B$28 * Deep_beam_data!$B$32 * Deep_beam_data!$B$29)
     df['Ted_l'] = 0  # initialize the column to 0
-    df.loc[df['ElemNo'].isin(deep_beam_elements), 'Ted_l'] = df.apply(
-        lambda x: x['Tors'] * x['temp_cot_theta'] * beam_data['deep_beam_data']['peritor']['value'][0] / (
-            2 * beam_data['deep_beam_data']['Aenc']['value'][0] * beam_data['deep_beam_data']['fyd']['value'][0]),axis=1)
-
-    df.loc[df['ElemNo'].isin(shallow_beam_elements), 'Ted_l'] = df.apply(
-        lambda x: x['Tors'] * x['temp_cot_theta'] * beam_data['shallow_beam_data']['peritor']['value'][0] / (
-                2 * beam_data['shallow_beam_data']['Aenc']['value'][0] * beam_data['shallow_beam_data']['fyd']['value'][0]),axis=1)
-
+    df.loc[deep_beam_mask, 'Ted_l'] = df['Tors'] * df.loc[deep_beam_mask, 'cot_theta'] * \
+                                      beam_data['deep_beam_data']['peritor']['value'][0] / (
+                                              2 * beam_data['deep_beam_data']['Aenc']['value'][0] *
+                                              beam_data['deep_beam_data']['fyd']['value'][0])
+    df.loc[shallow_beam_mask, 'Ted_l'] = df['Tors'] * df.loc[shallow_beam_mask, 'cot_theta'] * \
+                                         beam_data['shallow_beam_data']['peritor']['value'][0] / (
+                                                 2 * beam_data['shallow_beam_data']['Aenc']['value'][0] *
+                                                 beam_data['shallow_beam_data']['fyd']['value'][0])
     df['Ted_l'] *= 1E-02  # Change units to cm²/m
 
-    #Trd,max
-    #2*v*acw*fcd*Ak*tef*sin(theta)*cos(theta)
-    # =(2*Deep_beam_data!$B$39*Deep_beam_data!$B$38*Deep_beam_data!$B$34*Deep_beam_data!$B$28*Deep_beam_data!$B$22*SIN(RADIANS(Deep_beam_data!$B$17))*COS(RADIANS(Deep_beam_data!$B$17)))*1000
-    df['Trd_max'] = 0  # initialize the column to 0
-    df.loc[df['ElemNo'].isin(deep_beam_elements), 'Trd_max'] = df.apply(
-        lambda x: 2 * beam_data['deep_beam_data']['v']['value'][0] * beam_data['deep_beam_data']['acw']['value'][0] *
-                  beam_data['deep_beam_data']['fcd']['value'][0] * beam_data['deep_beam_data']['Aenc']['value'][0] *
-                  beam_data['deep_beam_data']['eff_wt']['value'][0] * math.sin(math.radians(x['alpha_s'])) *
-                  math.cos(math.radians(x['alpha_s'])), axis=1)
+    deep_beam_mask = df['ElemNo'].isin(deep_beam_elements)
+    shallow_beam_mask = df['ElemNo'].isin(shallow_beam_elements)
 
-    df.loc[df['ElemNo'].isin(shallow_beam_elements), 'Trd_max'] = df.apply(
-        lambda x: 2 * beam_data['shallow_beam_data']['v']['value'][0] * beam_data['shallow_beam_data']['acw']['value'][
-            0] *
-                  beam_data['shallow_beam_data']['fcd']['value'][0] * beam_data['shallow_beam_data']['Aenc']['value'][
-                      0] *
-                  beam_data['shallow_beam_data']['eff_wt']['value'][0] * math.sin(math.radians(x['alpha_s'])) *
-                  math.cos(math.radians(x['alpha_s'])), axis=1)
+    deep_beam_values = (
+            2 * beam_data['deep_beam_data']['v']['value'][0] *
+            beam_data['deep_beam_data']['acw']['value'][0] *
+            beam_data['deep_beam_data']['fcd']['value'][0] *
+            beam_data['deep_beam_data']['Aenc']['value'][0] *
+            beam_data['deep_beam_data']['eff_wt']['value'][0]
+    )
+    shallow_beam_values = (
+            2 * beam_data['shallow_beam_data']['v']['value'][0] *
+            beam_data['shallow_beam_data']['acw']['value'][0] *
+            beam_data['shallow_beam_data']['fcd']['value'][0] *
+            beam_data['shallow_beam_data']['Aenc']['value'][0] *
+            beam_data['shallow_beam_data']['eff_wt']['value'][0]
+    )
+
+    theta = np.radians(df['alpha_s'])
+
+    df.loc[deep_beam_mask, 'Trd_max'] = deep_beam_values * np.sin(theta[deep_beam_mask]) * np.cos(theta[deep_beam_mask])
+    df.loc[shallow_beam_mask, 'Trd_max'] = shallow_beam_values * np.sin(theta[shallow_beam_mask]) * np.cos(
+        theta[shallow_beam_mask])
 
     df['Trd_max'] *= 1E03  # Change units to kN.m
 
