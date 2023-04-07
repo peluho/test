@@ -1,6 +1,5 @@
 import math
-
-
+import numpy as np
 
 def calculate_beam_data(data):
     Acro = []
@@ -69,7 +68,7 @@ def calculate_beam_data(data):
             else:
                 cotant.append([1, 0])
         # fywd
-        v_oper.append(data['fys'][jj] / data['fs'][jj])
+        v_oper.append([data['fys'][jj] / data['fs'][jj],0])
         fyd.append([data['fys'][jj] / data['fs'][jj], 0])
         fywd.append([min(fyd[jj][0], 0.8 * data['fys'][jj]), 0])
         # fcd
@@ -94,29 +93,149 @@ def calculate_beam_data(data):
     return {
         'Acro': Acro,
         'peri': peri,
+        'eff_wt': eff_wt,
         'eff_wt_aux': eff_wt_aux,
-        'h_eff': h_eff,
-        'Ast_eff': Ast_eff,
-        'alpha_1': alpha_1,
-        'fwd': fwd,
-        'fwdp': fwdp,
-        'Vrdc': Vrdc,
-        'Vrdmax': Vrdmax,
-        'Vrdmax_G': Vrdmax_G,
-        'Vrdmax_Q': Vrdmax_Q,
-        'Vrdmax_GQ': Vrdmax_GQ,
-        'Asv': Asv,
-        'zv': zv,
+        'peritor': peritor,
+        'effz': effz,
+        'levz': levz,
+        'effy': effy,
+        'levy': levy,
+        'Aenc': Aenc,
+        'cotant': cotant,
+        'maxctany': maxctany,
+        'maxctanz': maxctanz,
         'fywd': fywd,
-        'v_oper': v_oper,
         'fyd': fyd,
         'fcd': fcd,
         'fcm': fcm,
         'fctm': fctm,
         'v1': v1,
         'acw': acw,
-        'v': v
+        'v': v,
+        'v_oper': v_oper,
     }
+
+#Function to read the excel files
+
+import pandas as pd
+
+def read_csv_file(filename, comment_char, columns):
+    """
+    Reads a CSV file and returns a dataframe with selected columns.
+
+    filename: str - the name of the CSV file to read.
+    comment_char: str - the character used to comment out rows to skip.
+    columns: list - a list of column names to select from the file.
+
+    returns: pandas.DataFrame - a dataframe with the selected columns.
+    """
+    # read the entire CSV file into a dataframe
+    df = pd.read_csv(filename, header=None, encoding='ISO-8859-1', comment= comment_char)
+
+    # create a name mapping dictionary based on the desired column names
+    name_mapping = {}
+    for i, col in enumerate(columns):
+            name_mapping[i] = col
+
+    # rename the columns based on the mapping
+    df = df.rename(columns=name_mapping)
+
+    # select the specified columns
+    df = df[columns]
+
+    # return the resulting dataframe
+    return df
+
+def add_columns(df):
+    """
+    Adds new columns to the dataframe.
+
+    df: pandas.DataFrame - the dataframe to modify.
+
+    returns: pandas.DataFrame - the modified dataframe.
+    """
+    # calculate the new N column
+    df['N'] = np.where(df['N_OR'] < 0, np.minimum(df['N_OR'], df['N_EX']), np.maximum(df['N_OR'], df['N_EX']))
+
+    # calculate the Tyy column
+    df['Tyy'] = np.maximum(np.abs(df['TY_OR']), np.abs(df['TY_EX']))
+
+    # calculate the Tzz column
+    df['Tzz'] = np.maximum(np.abs(df['TZ_OR']), np.abs(df['TZ_EX']))
+
+    # calculate the Tors column
+    df['Tors'] = np.maximum(np.abs(df['TORS_OR']), np.abs(df['TORS_EX']))
+
+    # calculate the mean compressive stress (MPa)
+    # scp = Ned/A
+    df['Scp'] = 
+
+    # return the modified dataframe
+    return df
+
+def filter_beam_type(df, deep_beam_elements, shallow_beam_elements):
+    """
+    Filters the dataframe based on element number for deep and shallow beams.
+
+    df: pandas.DataFrame - the input dataframe to filter.
+    deep_beam_elements: list - a list of element numbers for deep beams.
+    shallow_beam_elements: list - a list of element numbers for shallow beams.
+
+    returns: tuple - a tuple of two dataframes, one for deep beams and one for shallow beams.
+    """
+    # filter the dataframe by the element numbers for deep beams
+    deep_beam_df = df[df['ElemNo'].isin(deep_beam_elements)]
+
+    # filter the dataframe by the element numbers for shallow beams
+    shallow_beam_df = df[df['ElemNo'].isin(shallow_beam_elements)]
+
+    # return the two filtered dataframes as a tuple
+    return deep_beam_df, shallow_beam_df
+
+
+def calculate_beam_properties(df, beam_type):
+    """
+    Calculates the properties of a beam based on the given input data and beam type (deep or shallow).
+
+    Args:
+        df (pandas.DataFrame): Input data for the beam.
+        beam_type (str): Type of beam. Should be either "deep" or "shallow".
+
+    Returns:
+        pandas.DataFrame: Output data with the calculated properties of the beam.
+    """
+    # Create output dataframe with column names
+    columns = ['B', 'H', 'fyd', 'fcd', 'v', 'levy', 'levz', 'alpha_s', 'cotant', 'Acro', 'Ted', 'Ast_t', 'Ast_l', 'Trd_max', 'Trd_max_iter']
+    df_out = pd.DataFrame(columns=columns)
+
+    # Copy over input data
+    df_out.loc[0] = df.iloc[0]
+
+    if beam_type == "deep":
+        for i, row in df.iterrows():
+            # Copy over input data
+            df_out.iloc[i, :len(row)] = row.values
+
+            # Calculate deep beam properties
+            df_out.at[i, 'Ted'] = np.where(row['Nd'] < 0, np.minimum(row['Nd'], row['Nc']) * 10, np.maximum(row['Nd'], row['Nc']) * 10)
+            df_out.at[i, 'Ast_t'] = 10 * row['T'] / (df_out.at[0, 'Acro'] * row['levz'] * np.tan(row['alpha_s']))
+            df_out.at[i, 'Ast_l'] = 10 * row['T'] * np.tan(row['alpha_s']) / (df_out.at[0, 'Acro'] * row['levz'] * df_out.at[0, 'fyd'])
+            df_out.at[i, 'Trd_max'] = 2 * df_out.at[0, 'v'] * df_out.at[0, 'acw'] * df_out.at[0, 'fcd'] * df_out.at[0, 'Acro'] * df_out.at[0, 'tef'] * np.sin(row['alpha_s']) * np.cos(row['alpha_s']) * 1000
+            df_out.at[i, 'Trd_max_iter'] = 1000 * 0.068 * df_out.at[0, 'h'] * row['levy'] * (1 - row['cotant'] / 4 if row['Ted'] < 0 else 1 - 0.36)
+    elif beam_type == "shallow":
+        for i, row in df.iterrows():
+            # Copy over input data
+            df_out.iloc[i, :len(row)] = row.values
+
+            # Calculate shallow beam properties
+            df_out.at[i, 'Ted'] = np.where(row['Nd'] < 0, np.minimum(row['Nd'], row['Nc']) * 10, np.maximum(row['Nd'], row['Nc']) * 10)
+            df_out.at[i, 'As'] = 10 * row['T'] / (df_out.at[0, 'Acro'] * row['levz'] * np.tan(row['alpha_s']))
+            df_out.at[i, 'Trd_max'] = 2 * df_out.at[0, 'v'] * df_out.at[0, 'acw'] * df_out.at[0, 'fcd'] * df_out.at[0, 'Acro'] * df_out.at[0, 'tef'] * np.sin(row['alpha_s']) * np.cos(row['alpha_s']) * 1000
+            df_out.at[i, 'Trd_max_iter'] = 1000 * 0.068 * df_out.at[0, 'h'] * row['levy'] * (1 - row['cotant'] / 4) if row['Ted'] < 0 else 1000 * 0.068 * df_out.at[0, 'h'] * row['levy'] * (1 - 0.36)
+    else:
+        raise ValueError("Invalid beam type")
+
+    return df_out
 
 def main():
 
@@ -145,6 +264,64 @@ def main():
 
     #Print the results
     print(results)
+
+    # Load input data
+    filename = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\03_Combinations\\07_CSV\\01_WS\\VDE_Normal_Cat_II\\beam_combin0803101.csv'
+    comment_char = '!'
+    columns = {'ElemNo': '', 'cas': '', 'N_OR': 'N', 'TY_OR': 'N', 'TZ_OR': 'N', 'N_EX': 'N', 'TY_EX': 'N',
+               'TZ_EX': 'N', 'TORS_OR': 'N.m', 'MZ_OR': 'N.m', 'MY_OR': 'N.m', 'TORS_EX': 'N.m', 'MZ_EX': 'N.m',
+               'MY_EX': 'N.m',
+               'A': 'm2', 'IZ': 'm4', 'IY': 'm4'}
+
+    # Define beam element lists
+    deep_beam_elements = [260742, 260743, 260744, 260745, 260746, 260747, 260750, 260751, 260752, 260753, 260754,
+                          260755,
+                          260758, 260759, 260760, 260761, 260762, 260763, 260766, 260767, 260768, 260769, 260770,
+                          260771,
+                          260774, 260775, 260776, 260777, 260778, 260779, 260782, 260783, 260784, 260785, 260786,
+                          260787,
+                          260790, 260791, 260792, 260793, 260794, 260795, 260798, 260799, 260800, 260801, 260802,
+                          260803,
+                          260806, 260807, 260808, 260809, 260810, 260811, 260814, 260815, 260816, 260817, 260818,
+                          260819,
+                          260822, 260823, 260824, 260825, 260826, 260827, 260830, 260831, 260832, 260833, 260834,
+                          260835]
+
+    shallow_beam_elements = [260721, 260722, 260723, 260724, 260725, 260726, 260727, 260728, 260729, 260730, 260731,
+                             260732,
+                             260733, 260734, 260735, 260736, 260737, 260738, 260739, 260740]
+
+    # Read CSV file and filter for beam elements
+    df = read_csv_file(filename, comment_char, columns)
+
+    # Calculate additional columns
+    df = add_columns(df)
+
+    # Filter the DF based on element numbers
+    df = filter_beam_type(df, deep_beam_elements, shallow_beam_elements)
+
+    # Print resulting dataframe
+    print(df)
+
+    # Calculate deep beam properties
+    df_deep = df[df['beam_type'] == "deep"]
+    df_deep_props = calculate_beam_properties(df_deep, "deep")
+
+    # Calculate shallow beam properties
+    df_shallow = df[df['beam_type'] == "shallow"]
+    df_shallow_props = calculate_beam_properties(df_shallow, "shallow")
+
+    # Combine results into a single dataframe
+    df_props = pd.concat([df_deep_props, df_shallow_props])
+
+    # Write results to output file
+    df_props.to_excel("output_data.xlsx", index=False)
+
+
+
+if __name__ == '__main__':
+    main()
+
 
 # def calculate_shear_reinforcement(data):
 #     # Extract the required data from the input data
