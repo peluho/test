@@ -154,11 +154,9 @@ import pandas as pd
 def read_csv_file(filename, comment_char, columns):
     """
     Reads a CSV file and returns a dataframe with selected columns.
-
     filename: str - the name of the CSV file to read.
     comment_char: str - the character used to comment out rows to skip.
     columns: list - a list of column names to select from the file.
-
     returns: pandas.DataFrame - a dataframe with the selected columns.
     """
     # read the entire CSV file into a dataframe
@@ -181,12 +179,10 @@ def read_csv_file(filename, comment_char, columns):
     # return the resulting dataframe
     return df
 
-def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements):
+def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements, data):
     """
     Adds new columns to the dataframe.
-
     df: pandas.DataFrame - the dataframe to modify.
-
     returns: pandas.DataFrame - the modified dataframe.
     """
     # Filter dataframe based on beam element number
@@ -221,14 +217,15 @@ def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements):
     df['Sigma_cp'] *= 1E-6  # convert to MPa
 
     # Calculate Cot (theta)
-    df['cot_theta'] = np.zeros(len(df))
+    df['cot_theta'] = 0.0  # initialize to zero
     deep_beam_mask = df['ElemNo'].isin(deep_beam_elements)
     shallow_beam_mask = df['ElemNo'].isin(shallow_beam_elements)
 
-    df['cot_theta'][deep_beam_mask] = 1.2 + 0.2 * np.abs(df['Sigma_cp'][deep_beam_mask]) / \
-                                      beam_data['deep_beam_data']['fctm']['value'][0]
-    df['cot_theta'][~deep_beam_mask] = 1.2 + 0.2 * np.abs(df['Sigma_cp'][~deep_beam_mask]) / \
-                                       beam_data['shallow_beam_data']['fctm']['value'][0]
+    df.loc[deep_beam_mask, 'cot_theta'] = 1.2 + 0.2 * np.abs(df.loc[deep_beam_mask, 'Sigma_cp']) / \
+                                          beam_data['deep_beam_data']['fctm']['value'][0]
+
+    df.loc[shallow_beam_mask, 'cot_theta'] = 1.2 + 0.2 * np.abs(df.loc[shallow_beam_mask, 'Sigma_cp']) / \
+                                          beam_data['deep_beam_data']['fctm']['value'][0]
 
     df['cot_theta'] = np.maximum(df['cot_theta'], df['temp_cot_theta'])
 
@@ -242,10 +239,14 @@ def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements):
     df['temp_cot_theta'][~deep_beam_mask] = np.where(shallow_beam_maxctany < 1, max(1, shallow_beam_maxctany),
                                                      shallow_beam_maxctany)
 
-    # Calculate alpha
+    # calculate alpha_s column
     df['alpha_s'] = np.zeros(len(df))
-    df['alpha_s'][deep_beam_mask] = np.degrees(1 / np.tan(beam_data['deep_beam_data']['maxctany']['value'][0]))
-    df['alpha_s'][~deep_beam_mask] = np.degrees(1 / np.tan(beam_data['shallow_beam_data']['maxctany']['value'][0]))
+    df.loc[df['ElemNo'].isin(deep_beam_elements), 'alpha_s'] = np.arctan(
+        beam_data['deep_beam_data']['maxctany']['value'][0] / df[df['ElemNo'].isin(deep_beam_elements)][
+            'temp_cot_theta'])
+    df.loc[df['ElemNo'].isin(shallow_beam_elements), 'alpha_s'] = np.arctan(
+        beam_data['shallow_beam_data']['maxctany']['value'][0] / df[df['ElemNo'].isin(shallow_beam_elements)][
+            'temp_cot_theta'])
 
     df['alpha_s'] = np.degrees(df['alpha_s'])
 
@@ -303,17 +304,33 @@ def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements):
 
     df['Trd_max'] *= 1E03  # Change units to kN.m
 
+    # Available reinforcement shear (cm²)
+    # 2*(Astirrup-Ator_trans) + Atie
+    # != 2 * (Deep_beam_data!$B$10-Shear_deep_beam_y!F5) + Deep_beam_data!$B$16
+
+    deep_beam_mask = df['ElemNo'].isin(deep_beam_elements)
+    shallow_beam_mask = df['ElemNo'].isin(shallow_beam_elements)
+
+    deep_beam_values = (
+            2 * (data['Ast'][0] - df.loc[deep_beam_mask, 'Ted_t']) + data['Ayt'][0]
+    )
+    shallow_beam_values = (
+            2 * (data['Ast'][1] - df.loc[shallow_beam_mask, 'Ted_t']) + data['Ayt'][1]
+    )
+
+    # Merge the values back to the original dataframe
+    df.loc[deep_beam_mask, 'Asv'] = deep_beam_values
+    df.loc[shallow_beam_mask, 'Asv'] = shallow_beam_values
+
     return df
 
 
 def filter_beam_type(df, deep_beam_elements, shallow_beam_elements):
     """
     Filters the dataframe based on element number for deep and shallow beams.
-
     df: pandas.DataFrame - the input dataframe to filter.
     deep_beam_elements: list - a list of element numbers for deep beams.
     shallow_beam_elements: list - a list of element numbers for shallow beams.
-
     returns: tuple - a tuple of two dataframes, one for deep beams and one for shallow beams.
     """
     # filter the dataframe by the element numbers for deep beams
@@ -371,7 +388,6 @@ def filter_beam_type(df, deep_beam_elements, shallow_beam_elements):
     # return df_out
 
 def main():
-
     data = {
         "h": [1.3, 0.455],
         "bw": [1.5, 1.5],
@@ -381,16 +397,25 @@ def main():
         "fc": [1.5, 1.5],
         "ds": [16, 14],
         "ss": [100, 100],
-        "Ast": [60.32, 15.39],
         "dtz": [14, 14],
         "stz": [200, 200],
-        "Azt": [69.3, 38.5],
         "dty": [14, 14],
         "sty": [200, 200],
-        "Ayt": [30.8, 7.7],
         "alpha_s": [33.69 * math.pi / 180, 45 * math.pi / 180],
         "b_span": [2.69, 1.4],
     }
+
+    # calculate Ast
+    data["Ast"] = [3 * (1000 / data["ss"][0]) * math.pi * ((data["ds"][0] / 10) ** 2) / 4,
+                   3 * (1000 / data["ss"][1]) * math.pi * ((data["ds"][1] / 10) ** 2) / 4]
+
+    # calculate Azt
+    data["Azt"] = [(data["h"][0] - data["dtz"][0]) * data["stz"][0],
+                   (data["h"][1] - data["dtz"][1]) * data["stz"][1]]
+
+    # calculate Ayt
+    data["Ayt"] = [(data["h"][0] - data["dty"][0]) * data["sty"][0],
+                   (data["h"][1] - data["dty"][1]) * data["sty"][1]]
 
     # call the calculate_beam_data function
     results = calculate_beam_data(data)
@@ -449,8 +474,8 @@ def main():
 
     # Filter the DF based on element numbers
     df = filter_beam_type(df, deep_beam_elements, shallow_beam_elements)
-    deep_beam_df = add_columns(df[0], beam_data, deep_beam_elements, [])
-    shallow_beam_df = add_columns(df[1], beam_data, [], shallow_beam_elements)
+    deep_beam_df = add_columns(df[0], beam_data, deep_beam_elements, [], data)
+    shallow_beam_df = add_columns(df[1], beam_data, [], shallow_beam_elements, data)
 
     # Print resulting dataframe
     print(df)
