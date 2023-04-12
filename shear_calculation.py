@@ -227,17 +227,23 @@ def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements, data):
     df.loc[shallow_beam_mask, 'cot_theta'] = 1.2 + 0.2 * np.abs(df.loc[shallow_beam_mask, 'Sigma_cp']) / \
                                           beam_data['deep_beam_data']['fctm']['value'][0]
 
-    df['cot_theta'] = np.maximum(df['cot_theta'], df['temp_cot_theta'])
-
     # Calculate max ctan Y
     # TODO: this part needs to be reviewed
     #Calculate max ctan Y
     deep_beam_maxctany = beam_data['deep_beam_data']['maxctany']['value'][0]
     shallow_beam_maxctany = beam_data['shallow_beam_data']['maxctany']['value'][0]
-    df['temp_cot_theta'][deep_beam_mask] = np.where(deep_beam_maxctany < 1, max(1, deep_beam_maxctany),
-                                                    deep_beam_maxctany)
-    df['temp_cot_theta'][~deep_beam_mask] = np.where(shallow_beam_maxctany < 1, max(1, shallow_beam_maxctany),
-                                                     shallow_beam_maxctany)
+    df['temp_cot_theta'] = 0
+    df.loc[df['ElemNo'].isin(deep_beam_elements), 'temp_cot_theta'] = np.where(
+        beam_data['deep_beam_data']['maxctany']['value'][0] < 1,
+        max(1, beam_data['deep_beam_data']['maxctany']['value'][0]),
+        beam_data['deep_beam_data']['maxctany']['value'][0])
+    df.loc[df['ElemNo'].isin(shallow_beam_elements), 'temp_cot_theta'] = np.where(
+        beam_data['shallow_beam_data']['maxctany']['value'][0] < 1,
+        max(1, beam_data['shallow_beam_data']['maxctany']['value'][0]),
+        beam_data['shallow_beam_data']['maxctany']['value'][0])
+
+    df['cot_theta'] = np.minimum(df['cot_theta'], df['temp_cot_theta'])
+
 
     # calculate alpha_s column
     df['alpha_s'] = np.zeros(len(df))
@@ -264,7 +270,7 @@ def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements, data):
         0] * df.loc[shallow_beam_mask, 'cot_theta'])
     df['Ted_t'] *= 1E-02  # Change units to cm²/m
 
-    # Demand of steel due to torsin (cm²/m) long
+    # Demand of steel due to torsion (cm²/m) long
     # Ted*cot(theta)/(2*Ak*fyd)
     # = 10 * (E5) / (2 * Deep_beam_data!$B$28 * Deep_beam_data!$B$32 * Deep_beam_data!$B$29)
     df['Ted_l'] = 0  # initialize the column to 0
@@ -322,6 +328,174 @@ def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements, data):
     df.loc[deep_beam_mask, 'Asv'] = deep_beam_values
     df.loc[shallow_beam_mask, 'Asv'] = shallow_beam_values
 
+    # !Demand of steel due to shear EC2 (cm²/m)
+    # !Ved / (d * fywd * cot(?))
+    #
+    # != (D5 / (Deep_beam_data!$B$27 * Deep_beam_data!$B$29 * Deep_beam_data!$B$32)) * 10
+    #
+    # % name_deep % deepZ(jj, 10) = (%name_deep %deepZ(jj, 4) / (levz(1, 1) * cotant(1, 1) * fywd(1, 1)))*10
+    deep_beam_mask = df['ElemNo'].isin(deep_beam_elements)
+    shallow_beam_mask = df['ElemNo'].isin(shallow_beam_elements)
+
+    deep_beam_values = (
+            df.loc[deep_beam_mask, 'Tyy']) /( beam_data['deep_beam_data']['levy']['value'][
+        0] * df.loc[deep_beam_mask,'cot_theta'] * beam_data['deep_beam_data']['fywd']['value'][
+        0])
+
+    shallow_beam_values = (
+            df.loc[shallow_beam_mask, 'Tyy']) /( beam_data['shallow_beam_data']['levy']['value'][
+        0] * df.loc[shallow_beam_mask,'cot_theta'] * beam_data['shallow_beam_data']['fywd']['value'][
+        0])
+
+    # Merge the values back to the original dataframe
+    df.loc[deep_beam_mask, 'Ash_EC2'] = deep_beam_values
+    df.loc[shallow_beam_mask, 'Ash_EC2'] = shallow_beam_values
+
+    df['Ash_EC2'] *= 1E-02  # Change units to cm²/m
+
+
+    # !Vfd ITER CODE
+    # ![-]
+    # !SI(K5 < 0;
+    # 1000 * 0.068 * Deep_beam_data!$B$3 * Deep_beam_data!$B$25 * (1 - L5 / 4) * Deep_beam_data!$B$34;
+    # 1000 * 0.068 * Deep_beam_data!$B$3 * Deep_beam_data!$B$25 * (1 - 0.36 / L5) * Deep_beam_data!$B$34)
+
+    negative_sigma_cp_mask = df['Sigma_cp'] < 0
+    positive_sigma_cp_mask = ~negative_sigma_cp_mask
+
+    df.loc[negative_sigma_cp_mask & deep_beam_mask, 'Vfd'] = 1000 * 0.068 * data['bw'][0] * \
+                                                              beam_data['deep_beam_data']['levy']['value'][0] * (
+                                                                      1 - df.loc[
+                                                                  negative_sigma_cp_mask & deep_beam_mask, 'cot_theta'] / 4) * \
+                                                              beam_data['deep_beam_data']['fcd']['value'][0]
+    df.loc[positive_sigma_cp_mask & deep_beam_mask, 'Vfd'] = 1000 * 0.068 * data['bw'][0] * \
+                                                              beam_data['deep_beam_data']['levy']['value'][0] * (
+                                                                      1 - 0.36 / df.loc[
+                                                                  positive_sigma_cp_mask & deep_beam_mask, 'cot_theta']) * \
+                                                              beam_data['deep_beam_data']['fcd']['value'][0]
+    df.loc[negative_sigma_cp_mask & shallow_beam_mask, 'Vfd'] = 1000 * 0.068 * data['bw'][1] * \
+                                                                 beam_data['shallow_beam_data']['levy']['value'][0] * (
+                                                                         1 - df.loc[
+                                                                     negative_sigma_cp_mask & shallow_beam_mask, 'cot_theta'] / 4) * \
+                                                                 beam_data['shallow_beam_data']['fcd']['value'][0]
+    df.loc[positive_sigma_cp_mask & shallow_beam_mask, 'Vfd'] = 1000 * 0.068 * data['bw'][1] * \
+                                                                 beam_data['shallow_beam_data']['levy']['value'][0] * (
+                                                                         1 - 0.36 / df.loc[
+                                                                     positive_sigma_cp_mask & shallow_beam_mask, 'cot_theta']) * \
+                                                                 beam_data['shallow_beam_data']['fcd']['value'][0]
+
+    # !Demand of steel due to shear ITER CODE (cm²/m)
+    # !'max(0;(Ved-Vfed)/(d*fywd*cot(Î¸)))
+    # != MAX(0;
+    # ((D5 - M5) / (Deep_beam_data!$B$27 * Deep_beam_data!$B$29 * Deep_beam_data!$B$32)) * 10)
+    deep_beam_mask = df['ElemNo'].isin(deep_beam_elements)
+    shallow_beam_mask = df['ElemNo'].isin(shallow_beam_elements)
+
+    deep_beam_values = (
+                           df.loc[deep_beam_mask, 'Tyy'] *1e-03 - df.loc[deep_beam_mask,'Vfd']) / (beam_data['deep_beam_data']['levy']['value'][
+                                                                 0] * df.loc[deep_beam_mask, 'cot_theta'] *
+                                                             beam_data['deep_beam_data']['fywd']['value'][
+                                                                 0])
+
+    shallow_beam_values = (
+                              df.loc[shallow_beam_mask, 'Tyy']*1e-03 - df.loc[shallow_beam_mask,'Vfd'])  / (beam_data['shallow_beam_data']['levy']['value'][
+                                                                       0] * df.loc[shallow_beam_mask, 'cot_theta'] *
+                                                                   beam_data['shallow_beam_data']['fywd']['value'][
+                                                                       0])
+
+    # Merge the values back to the original dataframe
+    df.loc[deep_beam_mask, 'Ash_ITER'] = deep_beam_values
+    df.loc[shallow_beam_mask, 'Ash_ITER'] = shallow_beam_values
+
+    df['Ash_ITER'] *= 1E-02  # Change units to cm²/m
+
+    df['Ash_ITER'] = df['Ash_ITER'].clip(lower=0)
+
+    #
+    # ! Calculate safety margin due to steel
+    # ! (Available / Demand)
+    # ! =I5 / MAX(J5; N5)
+    temp = np.where(df['Ash_EC2'] > df['Ash_ITER'], df['Ash_EC2'], df['Ash_ITER'])
+    # Calculate the safety margin for each row using temp
+    df['steel_margin'] = df['Asv'] / np.maximum(temp, df['Ash_ITER'])
+    # temp = max(df['Ash_EC2'].dropna().tolist(), df['Ash_ITER'].dropna().tolist())
+    # df['steel_margin'] = df['Asv'] / temp
+
+    # ! Vrd,max EC2
+    # ! Î±cw * Î½1 * bw * d * fcd * (cotÎ¸ / (1+cotÎ¸Â²))
+    # ! =1000 * (Deep_beam_data
+    #            !$B$38 * Deep_beam_data!$B$2 * Deep_beam_data!$B$27 * Deep_beam_data!$B$37 * Deep_beam_data!$B$34) / (
+    #        Deep_beam_data!$B$29+1 /Deep_beam_data!$B$29)
+    #
+    # % name_deep % deepY(jj, 16) = 1000 * (acw(1, 1) * h(1, 1) * levy(1, 1) * v1(1, 1) * fcd(1, 1)) / (
+    #             cotant(1, 1) + 1 / cotant(1, 1))
+
+    deep_beam_values = (
+            (1E+03 * beam_data['deep_beam_data']['acw']['value'][0] * data['h'][0] *
+             beam_data['deep_beam_data']['levy']['value'][0] * beam_data['deep_beam_data']['v1']['value'][0] *
+             beam_data['deep_beam_data']['fcd']['value'][0]) / (beam_data['deep_beam_data']['cotant']['value'][0] + 1 /
+                                                                beam_data['deep_beam_data']['cotant']['value'][0]))
+
+    shallow_beam_values = (
+            (1E+03 * beam_data['shallow_beam_data']['acw']['value'][0] * data['h'][1] *
+             beam_data['shallow_beam_data']['levy']['value'][0] * beam_data['shallow_beam_data']['v1']['value'][0] *
+             beam_data['shallow_beam_data']['fcd']['value'][0]) / (
+                        beam_data['shallow_beam_data']['cotant']['value'][0] + 1 /
+                        beam_data['shallow_beam_data']['cotant']['value'][0]))
+
+    # Merge the values back to the original dataframe
+    df.loc[deep_beam_mask, 'Vrdmax_EC2'] = deep_beam_values
+    df.loc[shallow_beam_mask, 'Vrdmax_EC2'] = shallow_beam_values
+    # Merge the values back to the original dataframe
+    df.loc[deep_beam_mask, 'Vrdmax_EC2'] = deep_beam_values
+    df.loc[shallow_beam_mask, 'Vrdmax_EC2'] = shallow_beam_values
+    #
+    # ! Vrd,max ITER CODE
+    # ! Î±cw * Î½1 * bw * d * fcd * (cotÎ¸ / (1+cotÎ¸Â²))
+    # ! =1000 * (Deep_beam_data
+    #            !$B$38 * Deep_beam_data!$B$2 * Deep_beam_data!$B$27 * Deep_beam_data!$B$37 * Deep_beam_data!$B$34) / (
+    #                L5 + 1 / L5)
+    #
+    # % name_deep % deepY(jj, 17) = 1000 * (acw(1, 1) * h(1, 1) * levy(1, 1) * v1(1, 1) * fcd(1, 1)) / (
+    #     %name_deep %deepY(jj, 12) + 1 / % name_deep % deepY(jj, 12))
+
+    deep_beam_values = (
+            (1E+03 * beam_data['deep_beam_data']['acw']['value'][0] * data['h'][0] *
+             beam_data['deep_beam_data']['levy']['value'][0] * beam_data['deep_beam_data']['v1']['value'][0] *
+             beam_data['deep_beam_data']['fcd']['value'][0]) / (
+                        df.loc[deep_beam_mask, 'cot_theta'] + 1 /
+                        df.loc[deep_beam_mask, 'cot_theta']))
+
+    shallow_beam_values = (
+            (1E+03 * beam_data['shallow_beam_data']['acw']['value'][0] * data['h'][1] *
+             beam_data['shallow_beam_data']['levy']['value'][0] * beam_data['shallow_beam_data']['v1']['value'][0] *
+             beam_data['shallow_beam_data']['fcd']['value'][0]) / (
+                        df.loc[shallow_beam_mask, 'cot_theta'] + 1 /
+                        df.loc[shallow_beam_mask, 'cot_theta']))
+
+    # Merge the values back to the original dataframe
+    df.loc[deep_beam_mask, 'Vrdmax_ITER'] = deep_beam_values
+    df.loc[shallow_beam_mask, 'Vrdmax_ITER'] = shallow_beam_values
+
+    # ! Strut margin
+    # ! 1 / (Ted / Trd + Ved / Vrd)
+    # ! =1 / ((E5 / H5) + (D5 / MAX(P5;Q5)))
+
+    # Get the maximum value of Vrdmax_EC2 and Vrdmax_ITER, ignoring NaN values
+    # Calculate the strut margin for each row using temp
+    df['strut_margin'] = 1 / (
+            (1e-03 * df['Tors'] / df['Trd_max']) + (1e-03 * df['Tyy'] / np.maximum(df['Vrdmax_EC2'], df['Vrdmax_ITER']))
+    )
+
+    # ! Calculate the final margin
+    # ! Min(safety_steel; Strut_margin)
+    # ! =MIN(O5; R5)
+
+    # Calculate the final safety margin for each row
+    df['Safety_margin'] = np.minimum(df['steel_margin'], df['strut_margin'])
+
+
+
     return df
 
 
@@ -343,50 +517,6 @@ def filter_beam_type(df, deep_beam_elements, shallow_beam_elements):
     return deep_beam_df, shallow_beam_df
 
 
-# def calculate_beam_properties(df, beam_type):
-    # """
-    # Calculates the properties of a beam based on the given input data and beam type (deep or shallow).
-    #
-    # Args:
-    #     df (pandas.DataFrame): Input data for the beam.
-    #     beam_type (str): Type of beam. Should be either "deep" or "shallow".
-    #
-    # Returns:
-    #     pandas.DataFrame: Output data with the calculated properties of the beam.
-    # """
-    # # Create output dataframe with column names
-    # columns = ['B', 'H', 'fyd', 'fcd', 'v', 'levy', 'levz', 'alpha_s', 'cotant', 'Acro', 'Ted', 'Ast_t', 'Ast_l', 'Trd_max', 'Trd_max_iter']
-    # df_out = pd.DataFrame(columns=columns)
-    #
-    # # Copy over input data
-    # df_out.loc[0] = df.iloc[0]
-    #
-    # if beam_type == "deep":
-    #     for i, row in df.iterrows():
-    #         # Copy over input data
-    #         df_out.iloc[i, :len(row)] = row.values
-    #
-    #         # Calculate deep beam properties
-    #         df_out.at[i, 'Ted'] = np.where(row['Nd'] < 0, np.minimum(row['Nd'], row['Nc']) * 10, np.maximum(row['Nd'], row['Nc']) * 10)
-    #         df_out.at[i, 'Ast_t'] = 10 * row['T'] / (df_out.at[0, 'Acro'] * row['levz'] * np.tan(row['alpha_s']))
-    #         df_out.at[i, 'Ast_l'] = 10 * row['T'] * np.tan(row['alpha_s']) / (df_out.at[0, 'Acro'] * row['levz'] * df_out.at[0, 'fyd'])
-    #         df_out.at[i, 'Trd_max'] = 2 * df_out.at[0, 'v'] * df_out.at[0, 'acw'] * df_out.at[0, 'fcd'] * df_out.at[0, 'Acro'] * df_out.at[0, 'tef'] * np.sin(row['alpha_s']) * np.cos(row['alpha_s']) * 1000
-    #         df_out.at[i, 'Trd_max_iter'] = 1000 * 0.068 * df_out.at[0, 'h'] * row['levy'] * (1 - row['cotant'] / 4 if row['Ted'] < 0 else 1 - 0.36)
-    # elif beam_type == "shallow":
-    #     for i, row in df.iterrows():
-    #         # Copy over input data
-    #         df_out.iloc[i, :len(row)] = row.values
-    #
-    #         # Calculate shallow beam properties
-    #         df_out.at[i, 'Ted'] = np.where(row['Nd'] < 0, np.minimum(row['Nd'], row['Nc']) * 10, np.maximum(row['Nd'], row['Nc']) * 10)
-    #         df_out.at[i, 'As'] = 10 * row['T'] / (df_out.at[0, 'Acro'] * row['levz'] * np.tan(row['alpha_s']))
-    #         df_out.at[i, 'Trd_max'] = 2 * df_out.at[0, 'v'] * df_out.at[0, 'acw'] * df_out.at[0, 'fcd'] * df_out.at[0, 'Acro'] * df_out.at[0, 'tef'] * np.sin(row['alpha_s']) * np.cos(row['alpha_s']) * 1000
-    #         df_out.at[i, 'Trd_max_iter'] = 1000 * 0.068 * df_out.at[0, 'h'] * row['levy'] * (1 - row['cotant'] / 4) if row['Ted'] < 0 else 1000 * 0.068 * df_out.at[0, 'h'] * row['levy'] * (1 - 0.36)
-    # else:
-    #     raise ValueError("Invalid beam type")
-    #
-    # return df_out
-
 def main():
     data = {
         "h": [1.3, 0.455],
@@ -405,17 +535,17 @@ def main():
         "b_span": [2.69, 1.4],
     }
 
-    # calculate Ast
+    # calculate Ast 3HB16 @ 100 Deep Beam // 1HB16 @100 Shallow beam
     data["Ast"] = [3 * (1000 / data["ss"][0]) * math.pi * ((data["ds"][0] / 10) ** 2) / 4,
                    3 * (1000 / data["ss"][1]) * math.pi * ((data["ds"][1] / 10) ** 2) / 4]
 
-    # calculate Azt
-    data["Azt"] = [(data["h"][0] - data["dtz"][0]) * data["stz"][0],
-                   (data["h"][1] - data["dtz"][1]) * data["stz"][1]]
+    # calculate Azt 9HB14@200 Deep Beam // 5HB14 @200 Shallow beam
+    data["Azt"] = [9 * (1000 / data["stz"][0]) * math.pi * ((data["dtz"][0] / 10) ** 2) / 4,
+                   5 * (1000 / data["stz"][1]) * math.pi * ((data["dtz"][1] / 10) ** 2) / 4]
 
-    # calculate Ayt
-    data["Ayt"] = [(data["h"][0] - data["dty"][0]) * data["sty"][0],
-                   (data["h"][1] - data["dty"][1]) * data["sty"][1]]
+    # calculate Ayt 4HB14@200 Deep Beam // 1HB14 @200 Shallow beam
+    data["Ayt"] = [4 * (1000 / data["sty"][0]) * math.pi * ((data["dty"][0] / 10) ** 2) / 4,
+                   1 * (1000 / data["sty"][1]) * math.pi * ((data["dty"][1] / 10) ** 2) / 4]
 
     # call the calculate_beam_data function
     results = calculate_beam_data(data)
