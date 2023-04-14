@@ -1,6 +1,6 @@
 import math
 import numpy as np
-import csv
+import os
 
 def calculate_beam_data(data):
     Acro = []
@@ -176,6 +176,7 @@ def read_csv_file(filename, comment_char, columns):
     # select the specified columns
     selected_columns = [col for col in columns.keys()]
     df = df.iloc[:, selected_columns]
+    print(df)
 
     # return the resulting dataframe
     return df
@@ -814,12 +815,16 @@ def main():
     results = calculate_beam_data(data)
 
     #Print the results
-    print(results)
+    # print(results)
+
+    # Set up paths and constants
+    folder_path = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\03_Combinations\\07_CSV\\01_WS\\VDE_Normal_Cat_II'
+    comment_char = '!'
 
     # Load input data
-    filename = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\03_Combinations\\07_CSV\\01_WS\\VDE_Normal_Cat_II\\beam_test.csv'
+    # filename = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\03_Combinations\\07_CSV\\01_WS\\VDE_Normal_Cat_II\\beam_test.csv'
     # filename = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\03_Combinations\\07_CSV\\01_WS\\VDE_Normal_Cat_II\\beam_combin0803101.csv'
-    comment_char = '!'
+    # comment_char = '!'
     columns = {
         0: {'name': 'ElemNo', 'unit': ''},
         1: {'name': 'cas', 'unit': ''},
@@ -858,66 +863,117 @@ def main():
                              260732,
                              260733, 260734, 260735, 260736, 260737, 260738, 260739, 260740]
 
-    # Read CSV file and filter for beam elements
-    df = read_csv_file(filename, comment_char, columns)
+    # Find all CSV files in the folder
+    csv_files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if
+                 f.endswith('.csv') and 'beam_combin' in f]
 
-    # Calculate additional columns
-    beam_data = calculate_beam_data(data)
-    # deep_beam_df = add_columns(df,beam_data)
+    # Process each CSV file
+    for filename in csv_files:
 
-    # Filter the DF based on element numbers
-    df = filter_beam_type(df, deep_beam_elements, shallow_beam_elements)
-    deep_beam_df = add_columns(df[0], beam_data, deep_beam_elements, [], data)
-    shallow_beam_df = add_columns(df[1], beam_data, [], shallow_beam_elements, data)
+        # Reset the columns dictionary to the initial state
+        columns = {
+        0: {'name': 'ElemNo', 'unit': ''},
+        1: {'name': 'cas', 'unit': ''},
+        2: {'name': 'N_OR', 'unit': 'N'},
+        3: {'name': 'TY_OR', 'unit': 'N'},
+        4: {'name': 'TZ_OR', 'unit': 'N'},
+        5: {'name': 'N_EX', 'unit': 'N'},
+        6: {'name': 'TY_EX', 'unit': 'N'},
+        7: {'name': 'TZ_EX', 'unit': 'N'},
+        8: {'name': 'TORS_OR', 'unit': 'N.m'},
+        9: {'name': 'MZ_OR', 'unit': 'N.m'},
+        10: {'name': 'MY_OR', 'unit': 'N.m'},
+        11: {'name': 'TORS_EX', 'unit': 'N.m'},
+        12: {'name': 'MZ_EX', 'unit': 'N.m'},
+        13: {'name': 'MY_EX', 'unit': 'N.m'},
+        14: {'name': 'A', 'unit': 'm2'},
+        15: {'name': 'IZ', 'unit': 'm4'},
+        16: {'name': 'IY', 'unit': 'm4'}
+        }
 
-    # # Add the new columns to the dataframes
-    # deep_beam_df, shallow_beam_df = add_columns(deep_beam_df, shallow_beam_df)
+        # Read CSV file and filter for beam elements
+        df = read_csv_file(filename, comment_char, columns)
 
-    # Define the new columns to add to the dictionary
-    new_columns = [{'name': 'N', 'unit': 'N'},
-                   {'name': 'Tyy', 'unit': 'N'},
-                   {'name': 'Tzz', 'unit': 'N'},
-                   {'name': 'Tors', 'unit': 'N.m'},
-                   {'name': 'Sigma_cp', 'unit': 'MPa'},
-                   {'name': 'cot_theta_y', 'unit': ''},
-                   {'name': 'cot_theta_z', 'unit': ''},
-                   {'name': 'temp_cot_y_theta', 'unit': ''},
-                   {'name': 'temp_cot_z_theta', 'unit': ''},
-                   {'name': 'alpha_s_y', 'unit': 'deg'},
-                   {'name': 'alpha_s_z', 'unit': 'deg'},
-                   {'name': 'Ted_t_y', 'unit': 'cm2/m'},
-                   {'name': 'Ted_t_z', 'unit': 'cm2/m'},
-                   {'name': 'Ted_l_y', 'unit': 'cm2/m'},
-                   {'name': 'Ted_l_z', 'unit': 'cm2/m'},
-                   {'name': 'Trd_max_y', 'unit': 'kN.m'},
-                   {'name': 'Trd_max_z', 'unit': 'kN.m'},
-                   {'name': 'Asv_y',  'unit': 'cm2/m'},
-                   {'name': 'Asv_z',  'unit': 'cm2/m'},
-                   {'name': 'Ash_y_EC2',  'unit': 'cm2/m'},
-                   {'name': 'Ash_z_EC2',  'unit': 'cm2/m'},
-                   {'name': 'Vfd_y',  'unit': 'kN'},
-                   {'name': 'Vfd_z',  'unit': 'kN'},
-                   {'name': 'Ash_y_ITER',  'unit': 'cm2/m'},
-                   {'name': 'Ash_z_ITER',  'unit': 'cm2/m'},
-                   {'name': 'steel_margin_y',  'unit': ''},
-                   {'name': 'steel_margin_z',  'unit': ''},
-                   {'name': 'Vrdmax_y_EC2',  'unit': 'kN'},
-                   {'name': 'Vrdmax_z_EC2',  'unit': 'kN'},
-                   {'name': 'Vrdmax_y_ITER',  'unit': 'kN'},
-                   {'name': 'Vrdmax_z_ITER',  'unit': 'kN'},
-                   {'name': 'strut_margin_y',  'unit': ''},
-                   {'name': 'strut_margin_z',  'unit': ''},
-                   {'name': 'safety_margin_y',  'unit': ''},
-                   {'name': 'safety_margin_z',  'unit': ''},
-                   ]
+        # Calculate additional columns
+        beam_data = calculate_beam_data(data)
 
-    # Update the columns dictionary
-    columns = update_columns(columns, new_columns)
-    print(columns)
+        # Filter the DF based on element numbers
+        df = filter_beam_type(df, deep_beam_elements, shallow_beam_elements)
+        deep_beam_df = add_columns(df[0], beam_data, deep_beam_elements, [], data)
+        shallow_beam_df = add_columns(df[1], beam_data, [], shallow_beam_elements, data)
 
-    # Write results to output file
-    write_dataframe_to_tsv(deep_beam_df, "output_data_deep.tsv", columns)
-    write_dataframe_to_tsv(shallow_beam_df, "output_data_shallow.tsv", columns)
+        # Define the new columns to add to the dictionary
+        new_columns = [{'name': 'N', 'unit': 'N'},
+                       {'name': 'Tyy', 'unit': 'N'},
+                       {'name': 'Tzz', 'unit': 'N'},
+                       {'name': 'Tors', 'unit': 'N.m'},
+                       {'name': 'Sigma_cp', 'unit': 'MPa'},
+                       {'name': 'cot_theta_y', 'unit': ''},
+                       {'name': 'cot_theta_z', 'unit': ''},
+                       {'name': 'temp_cot_y_theta', 'unit': ''},
+                       {'name': 'temp_cot_z_theta', 'unit': ''},
+                       {'name': 'alpha_s_y', 'unit': 'deg'},
+                       {'name': 'alpha_s_z', 'unit': 'deg'},
+                       {'name': 'Ted_t_y', 'unit': 'cm2/m'},
+                       {'name': 'Ted_t_z', 'unit': 'cm2/m'},
+                       {'name': 'Ted_l_y', 'unit': 'cm2/m'},
+                       {'name': 'Ted_l_z', 'unit': 'cm2/m'},
+                       {'name': 'Trd_max_y', 'unit': 'kN.m'},
+                       {'name': 'Trd_max_z', 'unit': 'kN.m'},
+                       {'name': 'Asv_y', 'unit': 'cm2/m'},
+                       {'name': 'Asv_z', 'unit': 'cm2/m'},
+                       {'name': 'Ash_y_EC2', 'unit': 'cm2/m'},
+                       {'name': 'Ash_z_EC2', 'unit': 'cm2/m'},
+                       {'name': 'Vfd_y', 'unit': 'kN'},
+                       {'name': 'Vfd_z', 'unit': 'kN'},
+                       {'name': 'Ash_y_ITER', 'unit': 'cm2/m'},
+                       {'name': 'Ash_z_ITER', 'unit': 'cm2/m'},
+                       {'name': 'steel_margin_y', 'unit': ''},
+                       {'name': 'steel_margin_z', 'unit': ''},
+                       {'name': 'Vrdmax_y_EC2', 'unit': 'kN'},
+                       {'name': 'Vrdmax_z_EC2', 'unit': 'kN'},
+                       {'name': 'Vrdmax_y_ITER', 'unit': 'kN'},
+                       {'name': 'Vrdmax_z_ITER', 'unit': 'kN'},
+                       {'name': 'strut_margin_y', 'unit': ''},
+                       {'name': 'strut_margin_z', 'unit': ''},
+                       {'name': 'safety_margin_y', 'unit': ''},
+                       {'name': 'safety_margin_z', 'unit': ''},
+                       ]
+        # Update the columns dictionary
+        # columns = columns.copy()
+        columns_out = update_columns(columns, new_columns)
+
+        # Write results to output files with suffix
+        output_filename_deep = filename.replace('.csv', '_output_deep.tsv')
+        output_filename_shallow = filename.replace('.csv', '_output_shallow.tsv')
+        write_dataframe_to_tsv(deep_beam_df, output_filename_deep, columns_out)
+        write_dataframe_to_tsv(shallow_beam_df, output_filename_shallow, columns_out)
+
+
+# # Read CSV file and filter for beam elements
+    # df = read_csv_file(filename, comment_char, columns)
+    #
+    # # Calculate additional columns
+    # beam_data = calculate_beam_data(data)
+    # # deep_beam_df = add_columns(df,beam_data)
+    #
+    # # Filter the DF based on element numbers
+    # df = filter_beam_type(df, deep_beam_elements, shallow_beam_elements)
+    # deep_beam_df = add_columns(df[0], beam_data, deep_beam_elements, [], data)
+    # shallow_beam_df = add_columns(df[1], beam_data, [], shallow_beam_elements, data)
+    #
+    # # # Add the new columns to the dataframes
+    # # deep_beam_df, shallow_beam_df = add_columns(deep_beam_df, shallow_beam_df)
+
+
+
+    # # Update the columns dictionary
+    # columns = update_columns(columns, new_columns)
+    # print(columns)
+    #
+    # # Write results to output file
+    # write_dataframe_to_tsv(deep_beam_df, "output_data_deep.tsv", columns)
+    # write_dataframe_to_tsv(shallow_beam_df, "output_data_shallow.tsv", columns)
 
 
 
