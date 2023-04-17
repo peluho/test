@@ -775,7 +775,9 @@ def write_dataframe_to_tsv(df, filename, columns):
         writer.writerow(df.columns.tolist())
         # Write second row with units
         units = [columns[col]['unit'] for col in range(len(columns))]
+        formulas = [columns[col]['formula'] for col in range(len(columns))]
         writer.writerow(units)
+        writer.writerow(formulas)
         # Write data rows
         writer.writerows(df.values)
 
@@ -826,23 +828,23 @@ def main():
     # filename = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\03_Combinations\\07_CSV\\01_WS\\VDE_Normal_Cat_II\\beam_combin0803101.csv'
     # comment_char = '!'
     columns = {
-        0: {'name': 'ElemNo', 'unit': ''},
-        1: {'name': 'cas', 'unit': ''},
-        2: {'name': 'N_OR', 'unit': 'N'},
-        3: {'name': 'TY_OR', 'unit': 'N'},
-        4: {'name': 'TZ_OR', 'unit': 'N'},
-        5: {'name': 'N_EX', 'unit': 'N'},
-        6: {'name': 'TY_EX', 'unit': 'N'},
-        7: {'name': 'TZ_EX', 'unit': 'N'},
-        8: {'name': 'TORS_OR', 'unit': 'N.m'},
-        9: {'name': 'MZ_OR', 'unit': 'N.m'},
-        10: {'name': 'MY_OR', 'unit': 'N.m'},
-        11: {'name': 'TORS_EX', 'unit': 'N.m'},
-        12: {'name': 'MZ_EX', 'unit': 'N.m'},
-        13: {'name': 'MY_EX', 'unit': 'N.m'},
-        14: {'name': 'A', 'unit': 'm2'},
-        15: {'name': 'IZ', 'unit': 'm4'},
-        16: {'name': 'IY', 'unit': 'm4'}
+        0: {'name': 'ElemNo', 'unit': '', 'formula': ''},
+        1: {'name': 'cas', 'unit': '', 'formula': ''},
+        2: {'name': 'N_OR', 'unit': 'N', 'formula': ''},
+        3: {'name': 'TY_OR', 'unit': 'N', 'formula': ''},
+        4: {'name': 'TZ_OR', 'unit': 'N', 'formula': ''},
+        5: {'name': 'N_EX', 'unit': 'N', 'formula': ''},
+        6: {'name': 'TY_EX', 'unit': 'N', 'formula': ''},
+        7: {'name': 'TZ_EX', 'unit': 'N', 'formula': ''},
+        8: {'name': 'TORS_OR', 'unit': 'N.m', 'formula': ''},
+        9: {'name': 'MZ_OR', 'unit': 'N.m', 'formula': ''},
+        10: {'name': 'MY_OR', 'unit': 'N.m', 'formula': ''},
+        11: {'name': 'TORS_EX', 'unit': 'N.m', 'formula': ''},
+        12: {'name': 'MZ_EX', 'unit': 'N.m', 'formula': ''},
+        13: {'name': 'MY_EX', 'unit': 'N.m', 'formula': ''},
+        14: {'name': 'A', 'unit': 'm2', 'formula': ''},
+        15: {'name': 'IZ', 'unit': 'm4', 'formula': ''},
+        16: {'name': 'IY', 'unit': 'm4', 'formula': ''}
     }
 
     # Define beam element lists
@@ -872,23 +874,23 @@ def main():
 
         # Reset the columns dictionary to the initial state
         columns = {
-        0: {'name': 'ElemNo', 'unit': ''},
-        1: {'name': 'cas', 'unit': ''},
-        2: {'name': 'N_OR', 'unit': 'N'},
-        3: {'name': 'TY_OR', 'unit': 'N'},
-        4: {'name': 'TZ_OR', 'unit': 'N'},
-        5: {'name': 'N_EX', 'unit': 'N'},
-        6: {'name': 'TY_EX', 'unit': 'N'},
-        7: {'name': 'TZ_EX', 'unit': 'N'},
-        8: {'name': 'TORS_OR', 'unit': 'N.m'},
-        9: {'name': 'MZ_OR', 'unit': 'N.m'},
-        10: {'name': 'MY_OR', 'unit': 'N.m'},
-        11: {'name': 'TORS_EX', 'unit': 'N.m'},
-        12: {'name': 'MZ_EX', 'unit': 'N.m'},
-        13: {'name': 'MY_EX', 'unit': 'N.m'},
-        14: {'name': 'A', 'unit': 'm2'},
-        15: {'name': 'IZ', 'unit': 'm4'},
-        16: {'name': 'IY', 'unit': 'm4'}
+        0: {'name': 'ElemNo', 'unit': '', 'formula': ''},
+        1: {'name': 'cas', 'unit': '', 'formula': ''},
+        2: {'name': 'N_OR', 'unit': 'N', 'formula': ''},
+        3: {'name': 'TY_OR', 'unit': 'N', 'formula': ''},
+        4: {'name': 'TZ_OR', 'unit': 'N', 'formula': ''},
+        5: {'name': 'N_EX', 'unit': 'N', 'formula': ''},
+        6: {'name': 'TY_EX', 'unit': 'N', 'formula': ''},
+        7: {'name': 'TZ_EX', 'unit': 'N', 'formula': ''},
+        8: {'name': 'TORS_OR', 'unit': 'N.m', 'formula': ''},
+        9: {'name': 'MZ_OR', 'unit': 'N.m', 'formula': ''},
+        10: {'name': 'MY_OR', 'unit': 'N.m', 'formula': ''},
+        11: {'name': 'TORS_EX', 'unit': 'N.m', 'formula': ''},
+        12: {'name': 'MZ_EX', 'unit': 'N.m', 'formula': ''},
+        13: {'name': 'MY_EX', 'unit': 'N.m', 'formula': ''},
+        14: {'name': 'A', 'unit': 'm2', 'formula': ''},
+        15: {'name': 'IZ', 'unit': 'm4', 'formula': ''},
+        16: {'name': 'IY', 'unit': 'm4', 'formula': ''}
         }
 
         # Read CSV file and filter for beam elements
@@ -903,41 +905,42 @@ def main():
         shallow_beam_df = add_columns(df[1], beam_data, [], shallow_beam_elements, data)
 
         # Define the new columns to add to the dictionary
-        new_columns = [{'name': 'N', 'unit': 'N'},
-                       {'name': 'Tyy', 'unit': 'N'},
-                       {'name': 'Tzz', 'unit': 'N'},
-                       {'name': 'Tors', 'unit': 'N.m'},
-                       {'name': 'Sigma_cp', 'unit': 'MPa'},
-                       {'name': 'cot_theta_y', 'unit': ''},
-                       {'name': 'cot_theta_z', 'unit': ''},
-                       {'name': 'temp_cot_y_theta', 'unit': ''},
-                       {'name': 'temp_cot_z_theta', 'unit': ''},
-                       {'name': 'alpha_s_y', 'unit': 'deg'},
-                       {'name': 'alpha_s_z', 'unit': 'deg'},
-                       {'name': 'Ted_t_y', 'unit': 'cm2/m'},
-                       {'name': 'Ted_t_z', 'unit': 'cm2/m'},
-                       {'name': 'Ted_l_y', 'unit': 'cm2/m'},
-                       {'name': 'Ted_l_z', 'unit': 'cm2/m'},
-                       {'name': 'Trd_max_y', 'unit': 'kN.m'},
-                       {'name': 'Trd_max_z', 'unit': 'kN.m'},
-                       {'name': 'Asv_y', 'unit': 'cm2/m'},
-                       {'name': 'Asv_z', 'unit': 'cm2/m'},
-                       {'name': 'Ash_y_EC2', 'unit': 'cm2/m'},
-                       {'name': 'Ash_z_EC2', 'unit': 'cm2/m'},
-                       {'name': 'Vfd_y', 'unit': 'kN'},
-                       {'name': 'Vfd_z', 'unit': 'kN'},
-                       {'name': 'Ash_y_ITER', 'unit': 'cm2/m'},
-                       {'name': 'Ash_z_ITER', 'unit': 'cm2/m'},
-                       {'name': 'steel_margin_y', 'unit': ''},
-                       {'name': 'steel_margin_z', 'unit': ''},
-                       {'name': 'Vrdmax_y_EC2', 'unit': 'kN'},
-                       {'name': 'Vrdmax_z_EC2', 'unit': 'kN'},
-                       {'name': 'Vrdmax_y_ITER', 'unit': 'kN'},
-                       {'name': 'Vrdmax_z_ITER', 'unit': 'kN'},
-                       {'name': 'strut_margin_y', 'unit': ''},
-                       {'name': 'strut_margin_z', 'unit': ''},
-                       {'name': 'safety_margin_y', 'unit': ''},
-                       {'name': 'safety_margin_z', 'unit': ''},
+        new_columns = [{'name': 'Nd', 'unit': 'N', 'formula': ''},
+                       {'name': 'Vy', 'unit': 'N', 'formula': ''},
+                       {'name': 'Vz', 'unit': 'N', 'formula': ''},
+                       {'name': 'T', 'unit': 'N.m', 'formula': ''},
+                       {'name': 'Sigma_cp', 'unit': 'MPa', 'formula': '\u03c3cp = Ned/A'},
+                       {'name': 'cot_theta', 'unit': '', 'formula': '[-]'},
+                       {'name': 'temp_cot_y_theta', 'unit': '', 'formula': '[-]'},
+                       {'name': 'cot_theta_y', 'unit': '', 'formula': 'cot(\u03b8) = 1.2 + 0.2 * \u03c3cp/fctm | 1.2 + 0.9 * \u03c3cp/fctm \u2265 1'},
+                       {'name': 'temp_cot_z_theta', 'unit': '', 'formula': '[-]'},
+                       {'name': 'cot_theta_z', 'unit': '', 'formula': 'cot(\u03b8) = 1.2 + 0.2 * \u03c3cp/fctm | 1.2 + 0.9 * \u03c3cp/fctm \u2265 1'},
+                       {'name': 'alpha_s_y', 'unit': 'deg', 'formula': '\xb0'},
+                       {'name': 'alpha_s_z', 'unit': 'deg', 'formula': '\xb0'},
+                       {'name': 'Ted_t_y', 'unit': 'cm²/m', 'formula': 'Ted/(2*Ak*fywd*cot(\u03b8))'},
+                       {'name': 'Ted_t_z', 'unit': 'cm²/m', 'formula': 'Ted/(2*Ak*fywd*cot(\u03b8))'},
+                       {'name': 'Ted_l_y', 'unit': 'cm²/m', 'formula': 'Ted/(2*Ak*fywd*cot(\u03b8))'},
+                       {'name': 'Ted_l_z', 'unit': 'cm²/m', 'formula': 'Ted/(2*Ak*fywd*cot(\u03b8)'},
+                       {'name': 'Trd_max_y', 'unit': 'kN.m', 'formula': '2*ν*\u03b1cw*fcd*Ak*tef*sin\u03b8*cos\u03b8'},
+                       {'name': 'Trd_max_z', 'unit': 'kN.m', 'formula': '2*ν*\u03b1cw*fcd*Ak*tef*sin\u03b8*cos\u03b8'},
+                       {'name': 'Asv_y', 'unit': 'cm²/m', 'formula': '2*(Astirrup-Ator_trans <Ted_t_y>)+Ayt'},
+                       {'name': 'Asv_z', 'unit': 'cm²/m', 'formula': '2*(Astirrup-Ator_trans <Ted_t_z>)+Azt'},
+                       {'name': 'Ash_y_EC2', 'unit': 'cm/m', 'formula': 'Ast,shear EC2 = VEd/(z*fyd*cot(\u03b8)'},
+                       {'name': 'Ash_z_EC2', 'unit': 'cm2/m', 'formula': 'Ast,shear EC2 = VEd/(z*fyd*cot(\u03b8)'},
+                       {'name': 'Vfd_y', 'unit': 'kN', 'formula': 'Vfd = 0.068*bw*z*(1-cot(\u03b8)/4)*fcd with \u03c3cp < 0 | Vfd = 0.068*bw*z*(0.36/cot(\u03b8)*fcd being \u03c3cp \u2265 0'},
+                       {'name': 'Vfd_z', 'unit': 'kN', 'formula': 'Vfd = 0.068*bw*z*(1-cot(\u03b8)/4)*fcd with \u03c3cp < 0 | Vfd = 0.068*bw*z*(0.36/cot(\u03b8)*fcd being \u03c3cp \u2265 0'},
+                       {'name': 'Ash_y_ITER', 'unit': 'cm²/m', 'formula': 'max(0;(Vy-Vfd_y)/(z*fywd*cot(\u03b8)))'},
+                       {'name': 'Ash_z_ITER', 'unit': 'cm²/m', 'formula': 'max(0;(Vz-Vfd_z)/(z*fywd*cot(\u03b8)))'},
+                       {'name': 'steel_margin_y', 'unit': '', 'formula': 'Asv_y/max(Ash_y_EC2,Ash_y_ITER)'},
+                       {'name': 'steel_margin_z', 'unit': '', 'formula': 'Asv_z/max(Ash_z_EC2,Ash_z_ITER'},
+                       {'name': 'Vrdmax_y_EC2', 'unit': 'kN', 'formula': '\u03b1cw*ν1*bw*z*fcd*(cot\u03b8 + 1/cot\u03b8)'},
+                       {'name': 'Vrdmax_z_EC2', 'unit': 'kN', 'formula': '\u03b1cw*ν1*h*z*fcd*(cot\u03b8 + 1/cot\u03b8)'},
+                       {'name': 'Vrdmax_y_ITER', 'unit': 'kN', 'formula': '\u03b1cw*ν1*bw*z*fcd*(cot\u03b8 + 1/cot\u03b8)'},
+                       {'name': 'Vrdmax_z_ITER', 'unit': 'kN', 'formula': '\u03b1cw*ν1*h*z*fcd*(cot\u03b8 + 1/cot\u03b8)'},
+                       {'name': 'strut_margin_y', 'unit': '', 'formula': '1/(Ted/Trd+Ved/Vrd)'},
+                       {'name': 'strut_margin_z', 'unit': '', 'formula': '1/(Ted/Trd+Ved/Vrd)'},
+                       {'name': 'safety_margin_y', 'unit': '', 'formula': 'Min (steel_margin_y;strut_margin_y)'},
+                       {'name': 'safety_margin_z', 'unit': '', 'formula': 'Min (steel_margin_z;strut_margin_z)'},
                        ]
         # Update the columns dictionary
         # columns = columns.copy()
