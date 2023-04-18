@@ -1062,27 +1062,24 @@ def main():
     csv_files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if
                  f.endswith('.csv') and 'beam_combin' in f]
 
-    min_margins = {
-        "deep_strut_margin_y": float("inf"),
-        "deep_strut_margin_z": float("inf"),
-        "deep_steel_margin_y": float("inf"),
-        "deep_steel_margin_z": float("inf"),
-        "shallow_strut_margin_y": float("inf"),
-        "shallow_strut_margin_z": float("inf"),
-        "shallow_steel_margin_y": float("inf"),
-        "shallow_steel_margin_z": float("inf"),
-        "filename": ""
+    # Create a dictionary to hold the data
+    result_df = {
+        "Element Number": shallow_beam_elements + deep_beam_elements,
+        "Min Strut Y": [float("inf")] * (len(shallow_beam_elements) + len(deep_beam_elements)),
+        "Strut Y Cas": [""] * (len(shallow_beam_elements) + len(deep_beam_elements)),
+        "Min Strut Z": [float("inf")] * (len(shallow_beam_elements) + len(deep_beam_elements)),
+        "Strut Z Cas": [""] * (len(shallow_beam_elements) + len(deep_beam_elements)),
+        "Min Steel Y": [float("inf")] * (len(shallow_beam_elements) + len(deep_beam_elements)),
+        "Steel Y Cas": [""] * (len(shallow_beam_elements) + len(deep_beam_elements)),
+        "Min Steel Z": [float("inf")] * (len(shallow_beam_elements) + len(deep_beam_elements)),
+        "Steel Z Cas": [""] * (len(shallow_beam_elements) + len(deep_beam_elements))
     }
 
-    min_margins = {
-        "strut_margin_y": float("inf"),
-        "strut_margin_z": float("inf"),
-        "steel_margin_y": float("inf"),
-        "steel_margin_z": float("inf"),
-        "shallow_strut_margin_y": float("inf"),
-        "shallow_strut_margin_z": float("inf"),
-        "shallow_steel_margin_y": float("inf"),
-        "shallow_steel_margin_z": float("inf")
+    # Create the DataFrame
+    result_df = pd.DataFrame(result_df)
+
+    # Set the "Element Number" column as the index
+    result_df.set_index("Element Number", inplace=True)
 
     # Process each CSV file
     for filename in csv_files:
@@ -1178,7 +1175,54 @@ def main():
         write_dataframe_to_tsv(deep_beam_df, output_filename_deep, columns_out)
         write_dataframe_to_tsv(shallow_beam_df, output_filename_shallow, columns_out)
 
-        
+        # Iterate over each row in result_df
+        for i, row in result_df.iterrows():
+            elem_no = row["Element Number"]
+
+            # Check if the element is in the shallow beam dataframe
+            if elem_no in shallow_beam_df["ElemNo"].tolist():
+                # Get the corresponding row in shallow_beam_df
+                shallow_row = shallow_beam_df.loc[shallow_beam_df["ElemNo"] == elem_no]
+
+                # Compare the strut margin values
+                if shallow_row["strut_margin_y"].item() < row["Min Strut Y"]:
+                    result_df.at[i, "Min Strut Y"] = shallow_row["strut_margin_y"].item()
+                    result_df.at[i, "Strut Y Cas"] = shallow_row["cas"].item()
+
+                if shallow_row["strut_margin_z"].item() < row["Min Strut Z"]:
+                    result_df.at[i, "Min Strut Z"] = shallow_row["strut_margin_z"].item()
+                    result_df.at[i, "Strut Z Cas"] = shallow_row["cas"].item()
+
+                if shallow_row["steel_margin_y"].item() < row["Min Steel Y"]:
+                    result_df.at[i, "Min Steel Y"] = shallow_row["steel_margin_y"].item()
+                    result_df.at[i, "Steel Y Cas"] = shallow_row["cas"].item()
+
+                if shallow_row["steel_margin_z"].item() < row["Min Steel Z"]:
+                    result_df.at[i, "Min Steel Z"] = shallow_row["steel_margin_z"].item()
+                    result_df.at[i, "Steel Z Cas"] = shallow_row["cas"].item()
+
+            # Check if the element is in the deep beam dataframe
+            elif elem_no in deep_beam_df["ElemNo"].tolist():
+                # Get the corresponding row in deep_beam_df
+                deep_row = deep_beam_df.loc[deep_beam_df["ElemNo"] == elem_no]
+
+                # Compare the strut margin values
+                if deep_row["strut_margin_y"].item() < row["Min Strut Y"]:
+                    result_df.at[i, "Min Strut Y"] = deep_row["strut_margin_y"].item()
+                    result_df.at[i, "Strut Y Cas"] = deep_row["cas"].item()
+
+                if deep_row["strut_margin_z"].item() < row["Min Strut Z"]:
+                    result_df.at[i, "Min Strut Z"] = deep_row["strut_margin_z"].item()
+                    result_df.at[i, "Strut Z Cas"] = deep_row["cas"].item()
+
+                if deep_row["steel_margin_y"].item() < row["Min Steel Y"]:
+                    result_df.at[i, "Min Steel Y"] = deep_row["steel_margin_y"].item()
+                    result_df.at[i, "Steel Y Cas"] = deep_row["cas"].item()
+
+                if deep_row["steel_margin_z"].item() < row["Min Steel Z"]:
+                    result_df.at[i, "Min Steel Z"] = deep_row["steel_margin_z"].item()
+                    result_df.at[i, "Steel Z Cas"] = deep_row["cas"].item()
+
 
 if __name__ == '__main__':
     main()
