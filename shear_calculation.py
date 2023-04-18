@@ -187,7 +187,7 @@ def read_csv_file(filename, comment_char, columns):
     # return the resulting dataframe
     return df
 
-def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements, data):
+def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements, data, combination_number):
     """
     Adds new columns to the dataframe.
     df: pandas.DataFrame - the dataframe to modify.
@@ -747,6 +747,8 @@ def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements, data):
     df['Safety_margin_y'] = np.minimum(df['steel_margin_y'], df['strut_margin_y'])
     df['Safety_margin_z'] = np.minimum(df['steel_margin_z'], df['strut_margin_z'])
 
+    #Add load combination number
+    df['cas'] = combination_number
     return df
 
 
@@ -927,80 +929,80 @@ def main():
         "4549-4572": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
         '9301-9372': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
         '9601-9660': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
-        '9101-9172': {'fck': 89.9, 'γc': 500, 'fyk': 1.5, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '9201-9224': {'fck': 89.9, 'γc': 500, 'fyk': 1.5, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '9401-9460': {'fck': 89.9, 'γc': 500, 'fyk': 1.5, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+        '9101-9172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+        '9201-9224': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+        '9401-9460': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
         '109301-109372': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
         '109601-109660': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
-        '109101-109172': {'fck': 89.9, 'γc': 500, 'fyk': 1.5, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '109201-109224': {'fck': 89.9, 'γc': 500, 'fyk': 1.5, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '109401-109460': {'fck': 89.9, 'γc': 500, 'fyk': 1.5, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '33101-33172': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '35001-35048': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '133101-133172': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '135001-135048': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '233101-233172': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '235001-235048': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '333101-333172': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '335001-335048': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '455101-455172': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '455501-455564': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '555201-555272': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '555501-555564': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '655201-655272': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '655501-655564': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '755201-755272': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '755501-755564': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '55101-55172': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '55301-55360': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '55401-55424': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '155101-155172': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '155301-155360': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '155401-155424': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '255101-255172': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '255301-255360': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '255401-255424': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '355101-355172': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '355301-355360': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '355401-355424': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '803101-803118': {'fck': 89.9, 'γc': 500, 'fyk': 1.5, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '803201-803206': {'fck': 89.9, 'γc': 500, 'fyk': 1.5, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+        '109101-109172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+        '109201-109224': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+        '109401-109460': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+        '33101-33172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '35001-35048': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '133101-133172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '135001-135048': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '233101-233172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '235001-235048': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '333101-333172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '335001-335048': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '455101-455172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '455501-455564': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '555201-555272': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '555501-555564': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '655201-655272': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '655501-655564': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '755201-755272': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '755501-755564': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '55101-55172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '55301-55360': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '55401-55424': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '155101-155172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '155301-155360': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '155401-155424': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '255101-255172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '255301-255360': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '255401-255424': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '355101-355172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '355301-355360': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '355401-355424': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '803101-803118': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+        '803201-803206': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
         '803301-803318': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
-        '903101-903118': {'fck': 89.9, 'γc': 500, 'fyk': 1.5, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '903201-903206': {'fck': 89.9, 'γc': 500, 'fyk': 1.5, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+        '903101-903118': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+        '903201-903206': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
         '903301-903318': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
-        '815001-815009': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '828001-828018': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '915001-915009': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '928001-928018': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1015001-1015009': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1028001-1028018': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1115001-1115009': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1128001-1128018': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '851001-851006': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '853001-853015': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '855701-855712': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '855001-855006': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '951001-951006': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '953001-953015': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '955701-955712': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '955001-955006': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1051001-1051006': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1053001-1053015': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1055701-1055712': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '6551001-6551006': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1151001-1151006': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1153001-1153015': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1155701-1155712': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '7551001-7551006': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '50001-50009': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '150001-150009': {'fck': 89.9, 'γc': 500, 'fyk': 1.2, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1256001-1256624': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '1257001-1257624': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '1258001-1258624': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '1259001-1259624': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '1260001-1260624': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '1261001-1261624': {'fck': 89.9, 'γc': 500, 'fyk': 1.3, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '815001-815009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '828001-828018': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '915001-915009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '928001-928018': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '1015001-1015009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '1028001-1028018': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '1115001-1115009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '1128001-1128018': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '851001-851006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '853001-853015': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '855701-855712': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '855001-855006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '951001-951006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '953001-953015': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '955701-955712': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '955001-955006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '1051001-1051006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '1053001-1053015': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '1055701-1055712': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '6551001-6551006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '1151001-1151006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '1153001-1153015': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '1155701-1155712': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '7551001-7551006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '50001-50009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '150001-150009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+        '1256001-1256624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '1257001-1257624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '1258001-1258624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '1259001-1259624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '1260001-1260624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        '1261001-1261624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
     }
 
 
@@ -1060,6 +1062,27 @@ def main():
     csv_files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if
                  f.endswith('.csv') and 'beam_combin' in f]
 
+    min_margins = {
+        "deep_strut_margin_y": float("inf"),
+        "deep_strut_margin_z": float("inf"),
+        "deep_steel_margin_y": float("inf"),
+        "deep_steel_margin_z": float("inf"),
+        "shallow_strut_margin_y": float("inf"),
+        "shallow_strut_margin_z": float("inf"),
+        "shallow_steel_margin_y": float("inf"),
+        "shallow_steel_margin_z": float("inf"),
+        "filename": ""
+    }
+
+    min_margins = {
+        "strut_margin_y": float("inf"),
+        "strut_margin_z": float("inf"),
+        "steel_margin_y": float("inf"),
+        "steel_margin_z": float("inf"),
+        "shallow_strut_margin_y": float("inf"),
+        "shallow_strut_margin_z": float("inf"),
+        "shallow_steel_margin_y": float("inf"),
+        "shallow_steel_margin_z": float("inf")
 
     # Process each CSV file
     for filename in csv_files:
@@ -1104,8 +1127,8 @@ def main():
 
         # Filter the DF based on element numbers
         df = filter_beam_type(df, deep_beam_elements, shallow_beam_elements)
-        deep_beam_df = add_columns(df[0], beam_data, deep_beam_elements, [], data)
-        shallow_beam_df = add_columns(df[1], beam_data, [], shallow_beam_elements, data)
+        deep_beam_df = add_columns(df[0], beam_data, deep_beam_elements, [], data, combination_number)
+        shallow_beam_df = add_columns(df[1], beam_data, [], shallow_beam_elements, data, combination_number)
 
         # Define the new columns to add to the dictionary
         new_columns = [{'name': 'Nd', 'unit': 'N', 'formula': ''},
@@ -1155,6 +1178,7 @@ def main():
         write_dataframe_to_tsv(deep_beam_df, output_filename_deep, columns_out)
         write_dataframe_to_tsv(shallow_beam_df, output_filename_shallow, columns_out)
 
+        
 
 if __name__ == '__main__':
     main()
