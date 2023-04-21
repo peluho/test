@@ -302,12 +302,12 @@ def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements, data, 
     df['Ted_l_y'] = np.where(deep_beam_mask,
                            df['Tors'] * df['cot_theta_y'] * beam_data['deep_beam_data']['peritor']['value'][0] / (
                                    2 * beam_data['deep_beam_data']['Aenc']['value'][0] *
-                                   beam_data['deep_beam_data']['fyd']['value'][0]),
+                                   beam_data['deep_beam_data']['fywd']['value'][0]),
                            df['Ted_l_y'])
     df['Ted_l_y'] = np.where(shallow_beam_mask,
                            df['Tors'] * df['cot_theta_y'] * beam_data['shallow_beam_data']['peritor']['value'][0] / (
                                    2 * beam_data['shallow_beam_data']['Aenc']['value'][0] *
-                                   beam_data['shallow_beam_data']['fyd']['value'][0]),
+                                   beam_data['shallow_beam_data']['fywd']['value'][0]),
                            df['Ted_l_y'])
     df['Ted_l_y'] *= 1E-02  # Change units to cm²/m
 
@@ -318,12 +318,12 @@ def add_columns(df, beam_data, deep_beam_elements, shallow_beam_elements, data, 
     df['Ted_l_z'] = np.where(deep_beam_mask,
                            df['Tors'] * df['cot_theta_z'] * beam_data['deep_beam_data']['peritor']['value'][0] / (
                                    2 * beam_data['deep_beam_data']['Aenc']['value'][0] *
-                                   beam_data['deep_beam_data']['fyd']['value'][0]),
+                                   beam_data['deep_beam_data']['fywd']['value'][0]),
                            df['Ted_l_z'])
     df['Ted_l_z'] = np.where(shallow_beam_mask,
                            df['Tors'] * df['cot_theta_z'] * beam_data['shallow_beam_data']['peritor']['value'][0] / (
                                    2 * beam_data['shallow_beam_data']['Aenc']['value'][0] *
-                                   beam_data['shallow_beam_data']['fyd']['value'][0]),
+                                   beam_data['shallow_beam_data']['fywd']['value'][0]),
                            df['Ted_l_z'])
     df['Ted_l_z'] *= 1E-02  # Change units to cm²/m
 
@@ -793,8 +793,7 @@ def write_dataframe_to_tsv(df, filename, columns):
                 formulas.append('')
         writer.writerow(formulas)
         # Write data rows
-        writer.writerows(df.values)
-
+        writer.writerows(df.values.tolist())
 
 # def find_mat_properties(data, number_to_find):
 #     for range_key in data:
@@ -1064,7 +1063,6 @@ def main():
 
     # Create a dictionary to hold the data
     result_df = {
-        "Element Number": shallow_beam_elements + deep_beam_elements,
         "Min Strut Y": [float("inf")] * (len(shallow_beam_elements) + len(deep_beam_elements)),
         "Strut Y Cas": [""] * (len(shallow_beam_elements) + len(deep_beam_elements)),
         "Min Strut Z": [float("inf")] * (len(shallow_beam_elements) + len(deep_beam_elements)),
@@ -1078,8 +1076,16 @@ def main():
     # Create the DataFrame
     result_df = pd.DataFrame(result_df)
 
-    # Set the "Element Number" column as the index
-    result_df.set_index("Element Number", inplace=True)
+    # Add the "Element Number" column
+    result_df["Element Number"] = shallow_beam_elements + deep_beam_elements
+
+    # Move the index to a column
+    result_df = result_df.reset_index()
+
+    # Reorder the columns
+    result_df = result_df[
+        ["Element Number", "Min Strut Y", "Strut Y Cas", "Min Strut Z", "Strut Z Cas", "Min Steel Y", "Steel Y Cas",
+         "Min Steel Z", "Steel Z Cas"]]
 
     # Process each CSV file
     for filename in csv_files:
@@ -1150,16 +1156,16 @@ def main():
                        {'name': 'Asv_z', 'unit': 'cm²/m', 'formula': '2*(Astirrup-Ator_trans <Ted_t_z>)+Azt'},
                        {'name': 'Ash_y_EC2', 'unit': 'cm/m', 'formula': 'Ast,shear EC2 = VEd/(z*fyd*cot(\u03b8)'},
                        {'name': 'Ash_z_EC2', 'unit': 'cm2/m', 'formula': 'Ast,shear EC2 = VEd/(z*fyd*cot(\u03b8)'},
-                       {'name': 'Vfd_y', 'unit': 'kN', 'formula': 'Vfd = 0.068*h*levy*(1-cot(\u03b8)/4)*fcd with \u03c3cp < 0 \n Vfd = 0.068*h*levy*(0.36/cot(\u03b8)*fcd with \u03c3cp \u2265 0'},
-                       {'name': 'Vfd_z', 'unit': 'kN', 'formula': 'Vfd = 0.068*bw*levz*(1-cot(\u03b8)/4)*fcd with \u03c3cp < 0 \n Vfd = 0.068*bw*levz*(0.36/cot(\u03b8)*fcd with \u03c3cp \u2265 0'},
+                       {'name': 'Vfd_y', 'unit': 'kN', 'formula': 'Vfd = 0.068*h*levy*(1 - cot(\u03b8)/4)*fcd with \u03c3cp < 0 \n Vfd = 0.068*h*levy*(1 - 0.36/cot(\u03b8)*fcd with \u03c3cp \u2265 0'},
+                       {'name': 'Vfd_z', 'unit': 'kN', 'formula': 'Vfd = 0.068*bw*levz*(1 - cot(\u03b8)/4)*fcd with \u03c3cp < 0 \n Vfd = 0.068*bw*levz*(1 - 0.36/cot(\u03b8)*fcd with \u03c3cp \u2265 0'},
                        {'name': 'Ash_y_ITER', 'unit': 'cm²/m', 'formula': 'max(0;(Vy-Vfd_y)/(z*fywd*cot(\u03b8)))'},
                        {'name': 'Ash_z_ITER', 'unit': 'cm²/m', 'formula': 'max(0;(Vz-Vfd_z)/(z*fywd*cot(\u03b8)))'},
                        {'name': 'steel_margin_y', 'unit': '', 'formula': 'Asv_y/max(Ash_y_EC2,Ash_y_ITER)'},
                        {'name': 'steel_margin_z', 'unit': '', 'formula': 'Asv_z/max(Ash_z_EC2,Ash_z_ITER'},
-                       {'name': 'Vrdmax_y_EC2', 'unit': 'kN', 'formula': '\u03b1cw*ν1*h*levy*fcd*(cot\u03b8 + 1/cot\u03b8)'},
-                       {'name': 'Vrdmax_z_EC2', 'unit': 'kN', 'formula': '\u03b1cw*ν1*bw*levz*fcd*(cot\u03b8 + 1/cot\u03b8)'},
-                       {'name': 'Vrdmax_y_ITER', 'unit': 'kN', 'formula': '\u03b1cw*ν1*h*levy*fcd*(cot\u03b8 + 1/cot\u03b8)'},
-                       {'name': 'Vrdmax_z_ITER', 'unit': 'kN', 'formula': '\u03b1cw*ν1*bw*levz*fcd*(cot\u03b8 + 1/cot\u03b8)'},
+                       {'name': 'Vrdmax_y_EC2', 'unit': 'kN', 'formula': '\u03b1cw*ν1*h*levy*fcd/(cot\u03b8 + 1/cot\u03b8)'},
+                       {'name': 'Vrdmax_z_EC2', 'unit': 'kN', 'formula': '\u03b1cw*ν1*bw*levz*fcd/(cot\u03b8 + 1/cot\u03b8)'},
+                       {'name': 'Vrdmax_y_ITER', 'unit': 'kN', 'formula': '\u03b1cw*ν1*h*levy*fcd/(cot\u03b8 + 1/cot\u03b8)'},
+                       {'name': 'Vrdmax_z_ITER', 'unit': 'kN', 'formula': '\u03b1cw*ν1*bw*levz*fcd/(cot\u03b8 + 1/cot\u03b8)'},
                        {'name': 'strut_margin_y', 'unit': '', 'formula': '1/(Ted/Trd+Ved/Vrd)'},
                        {'name': 'strut_margin_z', 'unit': '', 'formula': '1/(Ted/Trd+Ved/Vrd)'},
                        {'name': 'safety_margin_y', 'unit': '', 'formula': 'Min (steel_margin_y;strut_margin_y)'},
@@ -1222,7 +1228,51 @@ def main():
                 if deep_row["steel_margin_z"].item() < row["Min Steel Z"]:
                     result_df.at[i, "Min Steel Z"] = deep_row["steel_margin_z"].item()
                     result_df.at[i, "Steel Z Cas"] = deep_row["cas"].item()
+    print(result_df)
 
+    col_result = {
+        0: {'name': 'Element Number', 'unit': '', 'formula': ''},
+        1: {'name': 'Min Strut Y', 'unit': '', 'formula': ''},
+        2: {'name': 'Strut Y Cas', 'unit': '', 'formula': ''},
+        3: {'name': 'Min Strut Z', 'unit': '', 'formula': ''},
+        4: {'name': 'Strut Z Cas', 'unit': '', 'formula': ''},
+        5: {'name': 'Min Steel Y', 'unit': '', 'formula': ''},
+        6: {'name': 'Steel Y Cas', 'unit': '', 'formula': ''},
+        7: {'name': 'Min Steel Z', 'unit': '', 'formula': ''},
+        8: {'name': 'Steel Z Cas', 'unit': '', 'formula': ''},
+    }
+
+    # Calculate the minimum margins and associated load case
+    min_strut_y = result_df['Min Strut Y'].min()
+    strut_y_cas = result_df['Strut Y Cas'][result_df['Min Strut Y'].idxmin()]
+    min_strut_z = result_df['Min Strut Z'].min()
+    strut_z_cas = result_df['Strut Z Cas'][result_df['Min Strut Z'].idxmin()]
+    min_steel_y = result_df['Min Steel Y'].min()
+    steel_y_cas = result_df['Steel Y Cas'][result_df['Min Steel Y'].idxmin()]
+    min_steel_z = result_df['Min Steel Z'].min()
+    steel_z_cas = result_df['Steel Z Cas'][result_df['Min Steel Z'].idxmin()]
+
+    # Create a dictionary with the minimum margins and associated load case
+    min_margins = {
+        'Element Number': '',
+        'Min Strut Y': min_strut_y,
+        'Strut Y Cas': strut_y_cas,
+        'Min Strut Z': min_strut_z,
+        'Strut Z Cas': strut_z_cas,
+        'Min Steel Y': min_steel_y,
+        'Steel Y Cas': steel_y_cas,
+        'Min Steel Z': min_steel_z,
+        'Steel Z Cas': steel_z_cas
+    }
+
+    # Create a DataFrame from the dictionary
+    min_margins_df = pd.DataFrame([min_margins])
+
+    # Concatenate the min_margins_df DataFrame with the result_df DataFrame
+    result_df = pd.concat([min_margins_df, result_df]).reset_index(drop=True)
+
+    output_filename_envelope = 'test_envelope.tsv'
+    write_dataframe_to_tsv(result_df, os.path.join(folder_path,output_filename_envelope), col_result)
 
 if __name__ == '__main__':
     main()
