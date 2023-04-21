@@ -4,9 +4,11 @@ import re
 import numpy as np
 import os
 import sys
+import subprocess
 # import io
 #
 # sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 
 def calculate_beam_data(data):
     Acro = []
@@ -824,455 +826,462 @@ def update_data(combination_number, data, combination_numbers):
 
 
 def main():
+    # List of folders paths to process
+    forder_paths = ['\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\03_Combinations\\07_CSV\\01_WS\\VDE_Normal_Cat_II',
+                    '\\io-ws-ccstore1\03.Ansys\02_5F\02_Config2\03_Combinations\07_CSV\01_WS\SL_Normal_Cat_I_II']
 
-    data = {
-        "h": [1.3, 0.455], # Height of section (dimension parallel to shear section force)
-        "bw": [1.5, 1.5], # Width of section (dimension perpendicular to shear force)
-        "fck": [90, 90], # Characteristic compressive strength of concrete
-        "fys": [500, 500], # Characteristic tensile strength of reinforcement
-        "fs": [1.15, 1.15], # Safety factor for steel reinforcement
-        "fc": [1.5, 1.5], # Safety factor for concrete
-        "ds": [16, 14], # Diameter of stirrups
-        "ss": [100, 100], # spacing of stirrups
-        "dtz": [14, 14], # spacing of ties z
-        "stz": [200, 200], # spacing of ties z
-        "dty": [14, 14], # spacing of ties y dir
-        "sty": [200, 200], # spacing of ties y dir
-        "alpha_s": [33.69 * math.pi / 180, 45 * math.pi / 180], # strut angle
-        "b_span": [2.69, 1.4], # beam span
-    }
+    # Call the shear_calculation.py script for each folder path
+    for folder_path in folder_paths:
+        subprocess.run(["python", "shear_calculation.py", folder_path])
 
-    # calculate Ast 3HB16 @ 100 Deep Beam // 1HB16 @100 Shallow beam
-    data["Ast"] = [3 * (1000 / data["ss"][0]) * math.pi * ((data["ds"][0] / 10) ** 2) / 4,
-                   1 * (1000 / data["ss"][1]) * math.pi * ((data["ds"][1] / 10) ** 2) / 4]
-
-    # calculate Azt 9HB14@200 Deep Beam // 5HB14 @200 Shallow beam
-    data["Azt"] = [9 * (1000 / data["stz"][0]) * math.pi * ((data["dtz"][0] / 10) ** 2) / 4,
-                   5 * (1000 / data["stz"][1]) * math.pi * ((data["dtz"][1] / 10) ** 2) / 4]
-
-    # calculate Ayt 4HB14@200 Deep Beam // 1HB14 @200 Shallow beam
-    data["Ayt"] = [4 * (1000 / data["sty"][0]) * math.pi * ((data["dty"][0] / 10) ** 2) / 4,
-                   1 * (1000 / data["sty"][1]) * math.pi * ((data["dty"][1] / 10) ** 2) / 4]
-
-    combination_numbers = {
-        "2701-2702": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
-        "2801-2802": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
-        "3303-3328": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
-        "3329-3354": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
-        "3355-3356": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
-        "2101-2102": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.f"},
-        "2111-2112": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.f"},
-        "2131-2132": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.qp"},
-        "2401-2402": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
-        "2411-2462": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
-        "2501-2502": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
-        "3203-3280": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
-        "2601-2602": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
-        "5101-5113": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "5201-5206": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "5114-5117": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "5210-5218": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "5207-5209": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "6001-6004": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "8001-8142": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "9001-9004": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "11001-11003": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "15001-15002": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "2803-2826": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
-        "2463-2486": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
-        "4101-4124": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4221-4244": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4245-4268": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4301-4324": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4325-4348": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4349-4372": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4373-4396": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        # "2803-2826": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
-        "2827-2850": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
-        # "2463-2486": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
-        "2901-2924": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
-        # "4221-4244": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4269-4292": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4401-4424": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4425-4448": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4501-4524": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4525-4548": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4125-4148": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4149-4172": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4173-4196": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4197-4220": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4601-4624": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4625-4648": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4649-4672": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4673-4696": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4701-4724": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4725-4748": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4749-4772": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4773-4796": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4801-4824": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4825-4848": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4849-4872": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4873-4896": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "25025-25028": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
-        "25021-25024": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
-        "25001-25004": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "25031-25034": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "25011-25014": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "25015-25018": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "25041-25044": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "25045-25048": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
-        "4901-4924": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4925-4948": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4949-4972": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4973-4996": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        "4549-4572": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
-        '9301-9372': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
-        '9601-9660': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
-        '9101-9172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '9201-9224': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '9401-9460': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '109301-109372': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
-        '109601-109660': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
-        '109101-109172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '109201-109224': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '109401-109460': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '33101-33172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '35001-35048': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '133101-133172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '135001-135048': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '233101-233172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '235001-235048': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '333101-333172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '335001-335048': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '455101-455172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '455501-455564': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '555201-555272': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '555501-555564': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '655201-655272': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '655501-655564': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '755201-755272': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '755501-755564': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '55101-55172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '55301-55360': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '55401-55424': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '155101-155172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '155301-155360': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '155401-155424': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '255101-255172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '255301-255360': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '255401-255424': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '355101-355172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '355301-355360': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '355401-355424': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '803101-803118': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '803201-803206': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '803301-803318': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
-        '903101-903118': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '903201-903206': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
-        '903301-903318': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
-        '815001-815009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '828001-828018': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '915001-915009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '928001-928018': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1015001-1015009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1028001-1028018': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1115001-1115009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1128001-1128018': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '851001-851006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '853001-853015': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '855701-855712': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '855001-855006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '951001-951006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '953001-953015': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '955701-955712': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '955001-955006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1051001-1051006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1053001-1053015': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1055701-1055712': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '6551001-6551006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1151001-1151006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1153001-1153015': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1155701-1155712': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '7551001-7551006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '50001-50009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '150001-150009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
-        '1256001-1256624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '1257001-1257624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '1258001-1258624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '1259001-1259624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '1260001-1260624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-        '1261001-1261624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
-    }
-
-
-    # call the calculate_beam_data function
-    results = calculate_beam_data(data)
-
-    #Print the results
-    # print(results)
-
-    # Set up paths and constants
-    folder_path = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\03_Combinations\\07_CSV\\01_WS\\VDE_Normal_Cat_II'
-    comment_char = '!'
-
-    # Load input data
-    # filename = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\03_Combinations\\07_CSV\\01_WS\\VDE_Normal_Cat_II\\beam_test.csv'
-    # filename = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\03_Combinations\\07_CSV\\01_WS\\VDE_Normal_Cat_II\\beam_combin0803101.csv'
-    # comment_char = '!'
-    columns = {
-        0: {'name': 'ElemNo', 'unit': '', 'formula': ''},
-        1: {'name': 'cas', 'unit': '', 'formula': ''},
-        2: {'name': 'N_OR', 'unit': 'N', 'formula': ''},
-        3: {'name': 'TY_OR', 'unit': 'N', 'formula': ''},
-        4: {'name': 'TZ_OR', 'unit': 'N', 'formula': ''},
-        5: {'name': 'N_EX', 'unit': 'N', 'formula': ''},
-        6: {'name': 'TY_EX', 'unit': 'N', 'formula': ''},
-        7: {'name': 'TZ_EX', 'unit': 'N', 'formula': ''},
-        8: {'name': 'TORS_OR', 'unit': 'N.m', 'formula': ''},
-        9: {'name': 'MZ_OR', 'unit': 'N.m', 'formula': ''},
-        10: {'name': 'MY_OR', 'unit': 'N.m', 'formula': ''},
-        11: {'name': 'TORS_EX', 'unit': 'N.m', 'formula': ''},
-        12: {'name': 'MZ_EX', 'unit': 'N.m', 'formula': ''},
-        13: {'name': 'MY_EX', 'unit': 'N.m', 'formula': ''},
-        14: {'name': 'A', 'unit': 'm2', 'formula': ''},
-        15: {'name': 'IZ', 'unit': 'm4', 'formula': ''},
-        16: {'name': 'IY', 'unit': 'm4', 'formula': ''}
-    }
-
-    # Define beam element lists
-    deep_beam_elements = [260742, 260743, 260744, 260745, 260746, 260747, 260750, 260751, 260752, 260753, 260754,
-                          260755,
-                          260758, 260759, 260760, 260761, 260762, 260763, 260766, 260767, 260768, 260769, 260770,
-                          260771,
-                          260774, 260775, 260776, 260777, 260778, 260779, 260782, 260783, 260784, 260785, 260786,
-                          260787,
-                          260790, 260791, 260792, 260793, 260794, 260795, 260798, 260799, 260800, 260801, 260802,
-                          260803,
-                          260806, 260807, 260808, 260809, 260810, 260811, 260814, 260815, 260816, 260817, 260818,
-                          260819,
-                          260822, 260823, 260824, 260825, 260826, 260827, 260830, 260831, 260832, 260833, 260834,
-                          260835]
-
-    shallow_beam_elements = [260721, 260722, 260723, 260724, 260725, 260726, 260727, 260728, 260729, 260730, 260731,
-                             260732,
-                             260733, 260734, 260735, 260736, 260737, 260738, 260739, 260740]
-
-    # Find all CSV files in the folder
-    csv_files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if
-                 f.endswith('.csv') and 'beam_combin' in f]
-
-    # Create a dictionary to hold the data
-    result_df = {
-        "Min Strut Y": [float("inf")] * (len(shallow_beam_elements) + len(deep_beam_elements)),
-        "Strut Y Cas": [""] * (len(shallow_beam_elements) + len(deep_beam_elements)),
-        "Min Strut Z": [float("inf")] * (len(shallow_beam_elements) + len(deep_beam_elements)),
-        "Strut Z Cas": [""] * (len(shallow_beam_elements) + len(deep_beam_elements)),
-        "Min Steel Y": [float("inf")] * (len(shallow_beam_elements) + len(deep_beam_elements)),
-        "Steel Y Cas": [""] * (len(shallow_beam_elements) + len(deep_beam_elements)),
-        "Min Steel Z": [float("inf")] * (len(shallow_beam_elements) + len(deep_beam_elements)),
-        "Steel Z Cas": [""] * (len(shallow_beam_elements) + len(deep_beam_elements))
-    }
-
-    # Create the DataFrame
-    result_df = pd.DataFrame(result_df)
-
-    # Add the "Element Number" column
-    result_df["Element Number"] = shallow_beam_elements + deep_beam_elements
-
-    # Move the index to a column
-    result_df = result_df.reset_index()
-
-    # Reorder the columns
-    result_df = result_df[
-        ["Element Number", "Min Strut Y", "Strut Y Cas", "Min Strut Z", "Strut Z Cas", "Min Steel Y", "Steel Y Cas",
-         "Min Steel Z", "Steel Z Cas"]]
-
-    # Process each CSV file
-    for filename in csv_files:
-
-        import re
-
-        match = re.search(r'combina?(\d+)\.csv', filename, re.IGNORECASE)
-
-        if match:
-            combination_number = int(match.group(1))
-            updated_data = update_data(combination_number, data, combination_numbers)
-            # print(combination_number, data)
-        else:
-            print("No combination number found in the filename.")
-
-        # Reset the columns dictionary to the initial state
-        columns = {
-        0: {'name': 'ElemNo', 'unit': '', 'formula': ''},
-        1: {'name': 'cas', 'unit': '', 'formula': ''},
-        2: {'name': 'N_OR', 'unit': 'N', 'formula': ''},
-        3: {'name': 'TY_OR', 'unit': 'N', 'formula': ''},
-        4: {'name': 'TZ_OR', 'unit': 'N', 'formula': ''},
-        5: {'name': 'N_EX', 'unit': 'N', 'formula': ''},
-        6: {'name': 'TY_EX', 'unit': 'N', 'formula': ''},
-        7: {'name': 'TZ_EX', 'unit': 'N', 'formula': ''},
-        8: {'name': 'TORS_OR', 'unit': 'N.m', 'formula': ''},
-        9: {'name': 'MZ_OR', 'unit': 'N.m', 'formula': ''},
-        10: {'name': 'MY_OR', 'unit': 'N.m', 'formula': ''},
-        11: {'name': 'TORS_EX', 'unit': 'N.m', 'formula': ''},
-        12: {'name': 'MZ_EX', 'unit': 'N.m', 'formula': ''},
-        13: {'name': 'MY_EX', 'unit': 'N.m', 'formula': ''},
-        14: {'name': 'A', 'unit': 'm2', 'formula': ''},
-        15: {'name': 'IZ', 'unit': 'm4', 'formula': ''},
-        16: {'name': 'IY', 'unit': 'm4', 'formula': ''}
+        data = {
+            "h": [1.3, 0.455], # Height of section (dimension parallel to shear section force)
+            "bw": [1.5, 1.5], # Width of section (dimension perpendicular to shear force)
+            "fck": [90, 90], # Characteristic compressive strength of concrete
+            "fys": [500, 500], # Characteristic tensile strength of reinforcement
+            "fs": [1.15, 1.15], # Safety factor for steel reinforcement
+            "fc": [1.5, 1.5], # Safety factor for concrete
+            "ds": [16, 14], # Diameter of stirrups
+            "ss": [100, 100], # spacing of stirrups
+            "dtz": [14, 14], # spacing of ties z
+            "stz": [200, 200], # spacing of ties z
+            "dty": [14, 14], # spacing of ties y dir
+            "sty": [200, 200], # spacing of ties y dir
+            "alpha_s": [33.69 * math.pi / 180, 45 * math.pi / 180], # strut angle
+            "b_span": [2.69, 1.4], # beam span
         }
-
-        # Read CSV file and filter for beam elements
-        df = read_csv_file(filename, comment_char, columns)
-
-        # Calculate additional columns
-        beam_data = calculate_beam_data(data)
-
-        # Filter the DF based on element numbers
-        df = filter_beam_type(df, deep_beam_elements, shallow_beam_elements)
-        deep_beam_df = add_columns(df[0], beam_data, deep_beam_elements, [], data, combination_number)
-        shallow_beam_df = add_columns(df[1], beam_data, [], shallow_beam_elements, data, combination_number)
-
-        # Define the new columns to add to the dictionary
-        new_columns = [{'name': 'Nd', 'unit': 'N', 'formula': ''},
-                       {'name': 'Vy', 'unit': 'N', 'formula': ''},
-                       {'name': 'Vz', 'unit': 'N', 'formula': ''},
-                       {'name': 'T', 'unit': 'N.m', 'formula': ''},
-                       {'name': 'Sigma_cp', 'unit': 'MPa', 'formula': '\u03c3cp = Ned/A'},
-                       {'name': 'cot_theta', 'unit': '', 'formula': '[-]'},
-                       {'name': 'temp_cot_y_theta', 'unit': '', 'formula': '[-]'},
-                       {'name': 'cot_theta_y', 'unit': '', 'formula': 'cot(\u03b8) = 1.2 + 0.2 * \u03c3cp/fctm with \u03c3cp < 0 \n cot(\u03b8) = 1.2 + 0.9 * \u03c3cp/fctm \u2265 0'},
-                       {'name': 'temp_cot_z_theta', 'unit': '', 'formula': '[-]'},
-                       {'name': 'cot_theta_z', 'unit': '', 'formula': 'cot(\u03b8) = 1.2 + 0.2 * \u03c3cp/fctm \n cot(\u03b8) = 1.2 + 0.9 * \u03c3cp/fctm \u2265 0'},
-                       {'name': 'alpha_s_y', 'unit': 'deg', 'formula': '\xb0'},
-                       {'name': 'alpha_s_z', 'unit': 'deg', 'formula': '\xb0'},
-                       {'name': 'Ted_t_y', 'unit': 'cm²/m', 'formula': 'Ted/(2*Ak*fywd*cot(\u03b8))'},
-                       {'name': 'Ted_t_z', 'unit': 'cm²/m', 'formula': 'Ted/(2*Ak*fywd*cot(\u03b8))'},
-                       {'name': 'Ted_l_y', 'unit': 'cm²/m', 'formula': 'Ted/(2*Ak*fywd*cot(\u03b8))'},
-                       {'name': 'Ted_l_z', 'unit': 'cm²/m', 'formula': 'Ted/(2*Ak*fywd*cot(\u03b8)'},
-                       {'name': 'Trd_max_y', 'unit': 'kN.m', 'formula': '2*ν*\u03b1cw*fcd*Ak*tef*sin\u03b8*cos\u03b8'},
-                       {'name': 'Trd_max_z', 'unit': 'kN.m', 'formula': '2*ν*\u03b1cw*fcd*Ak*tef*sin\u03b8*cos\u03b8'},
-                       {'name': 'Asv_y', 'unit': 'cm²/m', 'formula': '2*(Astirrup-Ator_trans <Ted_t_y>)+Ayt'},
-                       {'name': 'Asv_z', 'unit': 'cm²/m', 'formula': '2*(Astirrup-Ator_trans <Ted_t_z>)+Azt'},
-                       {'name': 'Ash_y_EC2', 'unit': 'cm/m', 'formula': 'Ast,shear EC2 = VEd/(z*fyd*cot(\u03b8)'},
-                       {'name': 'Ash_z_EC2', 'unit': 'cm2/m', 'formula': 'Ast,shear EC2 = VEd/(z*fyd*cot(\u03b8)'},
-                       {'name': 'Vfd_y', 'unit': 'kN', 'formula': 'Vfd = 0.068*h*levy*(1 - cot(\u03b8)/4)*fcd with \u03c3cp < 0 \n Vfd = 0.068*h*levy*(1 - 0.36/cot(\u03b8)*fcd with \u03c3cp \u2265 0'},
-                       {'name': 'Vfd_z', 'unit': 'kN', 'formula': 'Vfd = 0.068*bw*levz*(1 - cot(\u03b8)/4)*fcd with \u03c3cp < 0 \n Vfd = 0.068*bw*levz*(1 - 0.36/cot(\u03b8)*fcd with \u03c3cp \u2265 0'},
-                       {'name': 'Ash_y_ITER', 'unit': 'cm²/m', 'formula': 'max(0;(Vy-Vfd_y)/(z*fywd*cot(\u03b8)))'},
-                       {'name': 'Ash_z_ITER', 'unit': 'cm²/m', 'formula': 'max(0;(Vz-Vfd_z)/(z*fywd*cot(\u03b8)))'},
-                       {'name': 'steel_margin_y', 'unit': '', 'formula': 'Asv_y/max(Ash_y_EC2,Ash_y_ITER)'},
-                       {'name': 'steel_margin_z', 'unit': '', 'formula': 'Asv_z/max(Ash_z_EC2,Ash_z_ITER'},
-                       {'name': 'Vrdmax_y_EC2', 'unit': 'kN', 'formula': '\u03b1cw*ν1*h*levy*fcd/(cot\u03b8 + 1/cot\u03b8)'},
-                       {'name': 'Vrdmax_z_EC2', 'unit': 'kN', 'formula': '\u03b1cw*ν1*bw*levz*fcd/(cot\u03b8 + 1/cot\u03b8)'},
-                       {'name': 'Vrdmax_y_ITER', 'unit': 'kN', 'formula': '\u03b1cw*ν1*h*levy*fcd/(cot\u03b8 + 1/cot\u03b8)'},
-                       {'name': 'Vrdmax_z_ITER', 'unit': 'kN', 'formula': '\u03b1cw*ν1*bw*levz*fcd/(cot\u03b8 + 1/cot\u03b8)'},
-                       {'name': 'strut_margin_y', 'unit': '', 'formula': '1/(Ted/Trd+Ved/Vrd)'},
-                       {'name': 'strut_margin_z', 'unit': '', 'formula': '1/(Ted/Trd+Ved/Vrd)'},
-                       {'name': 'safety_margin_y', 'unit': '', 'formula': 'Min (steel_margin_y;strut_margin_y)'},
-                       {'name': 'safety_margin_z', 'unit': '', 'formula': 'Min (steel_margin_z;strut_margin_z)'},
-                       ]
-        # Update the columns dictionary
-        # columns = columns.copy()
-        columns_out = update_columns(columns, new_columns)
-
-        # Write results to output files with suffix
-        output_filename_deep = filename.replace('.csv', '_output_deep.tsv')
-        output_filename_shallow = filename.replace('.csv', '_output_shallow.tsv')
-        write_dataframe_to_tsv(deep_beam_df, output_filename_deep, columns_out)
-        write_dataframe_to_tsv(shallow_beam_df, output_filename_shallow, columns_out)
-
-        # Iterate over each row in result_df
-        for i, row in result_df.iterrows():
-            elem_no = row["Element Number"]
-
-            # Check if the element is in the shallow beam dataframe
-            if elem_no in shallow_beam_df["ElemNo"].tolist():
-                # Get the corresponding row in shallow_beam_df
-                shallow_row = shallow_beam_df.loc[shallow_beam_df["ElemNo"] == elem_no]
-
-                # Compare the strut margin values
-                if shallow_row["strut_margin_y"].item() < row["Min Strut Y"]:
-                    result_df.at[i, "Min Strut Y"] = shallow_row["strut_margin_y"].item()
-                    result_df.at[i, "Strut Y Cas"] = shallow_row["cas"].item()
-
-                if shallow_row["strut_margin_z"].item() < row["Min Strut Z"]:
-                    result_df.at[i, "Min Strut Z"] = shallow_row["strut_margin_z"].item()
-                    result_df.at[i, "Strut Z Cas"] = shallow_row["cas"].item()
-
-                if shallow_row["steel_margin_y"].item() < row["Min Steel Y"]:
-                    result_df.at[i, "Min Steel Y"] = shallow_row["steel_margin_y"].item()
-                    result_df.at[i, "Steel Y Cas"] = shallow_row["cas"].item()
-
-                if shallow_row["steel_margin_z"].item() < row["Min Steel Z"]:
-                    result_df.at[i, "Min Steel Z"] = shallow_row["steel_margin_z"].item()
-                    result_df.at[i, "Steel Z Cas"] = shallow_row["cas"].item()
-
-            # Check if the element is in the deep beam dataframe
-            elif elem_no in deep_beam_df["ElemNo"].tolist():
-                # Get the corresponding row in deep_beam_df
-                deep_row = deep_beam_df.loc[deep_beam_df["ElemNo"] == elem_no]
-
-                # Compare the strut margin values
-                if deep_row["strut_margin_y"].item() < row["Min Strut Y"]:
-                    result_df.at[i, "Min Strut Y"] = deep_row["strut_margin_y"].item()
-                    result_df.at[i, "Strut Y Cas"] = deep_row["cas"].item()
-
-                if deep_row["strut_margin_z"].item() < row["Min Strut Z"]:
-                    result_df.at[i, "Min Strut Z"] = deep_row["strut_margin_z"].item()
-                    result_df.at[i, "Strut Z Cas"] = deep_row["cas"].item()
-
-                if deep_row["steel_margin_y"].item() < row["Min Steel Y"]:
-                    result_df.at[i, "Min Steel Y"] = deep_row["steel_margin_y"].item()
-                    result_df.at[i, "Steel Y Cas"] = deep_row["cas"].item()
-
-                if deep_row["steel_margin_z"].item() < row["Min Steel Z"]:
-                    result_df.at[i, "Min Steel Z"] = deep_row["steel_margin_z"].item()
-                    result_df.at[i, "Steel Z Cas"] = deep_row["cas"].item()
-    print(result_df)
-
-    col_result = {
-        0: {'name': 'Element Number', 'unit': '', 'formula': ''},
-        1: {'name': 'Min Strut Y', 'unit': '', 'formula': ''},
-        2: {'name': 'Strut Y Cas', 'unit': '', 'formula': ''},
-        3: {'name': 'Min Strut Z', 'unit': '', 'formula': ''},
-        4: {'name': 'Strut Z Cas', 'unit': '', 'formula': ''},
-        5: {'name': 'Min Steel Y', 'unit': '', 'formula': ''},
-        6: {'name': 'Steel Y Cas', 'unit': '', 'formula': ''},
-        7: {'name': 'Min Steel Z', 'unit': '', 'formula': ''},
-        8: {'name': 'Steel Z Cas', 'unit': '', 'formula': ''},
-    }
-
-    # Calculate the minimum margins and associated load case
-    min_strut_y = result_df['Min Strut Y'].min()
-    strut_y_cas = result_df['Strut Y Cas'][result_df['Min Strut Y'].idxmin()]
-    min_strut_z = result_df['Min Strut Z'].min()
-    strut_z_cas = result_df['Strut Z Cas'][result_df['Min Strut Z'].idxmin()]
-    min_steel_y = result_df['Min Steel Y'].min()
-    steel_y_cas = result_df['Steel Y Cas'][result_df['Min Steel Y'].idxmin()]
-    min_steel_z = result_df['Min Steel Z'].min()
-    steel_z_cas = result_df['Steel Z Cas'][result_df['Min Steel Z'].idxmin()]
-
-    # Create a dictionary with the minimum margins and associated load case
-    min_margins = {
-        'Element Number': '',
-        'Min Strut Y': min_strut_y,
-        'Strut Y Cas': strut_y_cas,
-        'Min Strut Z': min_strut_z,
-        'Strut Z Cas': strut_z_cas,
-        'Min Steel Y': min_steel_y,
-        'Steel Y Cas': steel_y_cas,
-        'Min Steel Z': min_steel_z,
-        'Steel Z Cas': steel_z_cas
-    }
-
-    # Create a DataFrame from the dictionary
-    min_margins_df = pd.DataFrame([min_margins])
-
-    # Concatenate the min_margins_df DataFrame with the result_df DataFrame
-    result_df = pd.concat([min_margins_df, result_df]).reset_index(drop=True)
-
-    output_filename_envelope = 'test_envelope.tsv'
-    write_dataframe_to_tsv(result_df, os.path.join(folder_path,output_filename_envelope), col_result)
+    
+        # calculate Ast 3HB16 @ 100 Deep Beam // 1HB16 @100 Shallow beam
+        data["Ast"] = [3 * (1000 / data["ss"][0]) * math.pi * ((data["ds"][0] / 10) ** 2) / 4,
+                       1 * (1000 / data["ss"][1]) * math.pi * ((data["ds"][1] / 10) ** 2) / 4]
+    
+        # calculate Azt 9HB14@200 Deep Beam // 5HB14 @200 Shallow beam
+        data["Azt"] = [9 * (1000 / data["stz"][0]) * math.pi * ((data["dtz"][0] / 10) ** 2) / 4,
+                       5 * (1000 / data["stz"][1]) * math.pi * ((data["dtz"][1] / 10) ** 2) / 4]
+    
+        # calculate Ayt 4HB14@200 Deep Beam // 1HB14 @200 Shallow beam
+        data["Ayt"] = [4 * (1000 / data["sty"][0]) * math.pi * ((data["dty"][0] / 10) ** 2) / 4,
+                       1 * (1000 / data["sty"][1]) * math.pi * ((data["dty"][1] / 10) ** 2) / 4]
+    
+        combination_numbers = {
+            "2701-2702": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
+            "2801-2802": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
+            "3303-3328": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
+            "3329-3354": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
+            "3355-3356": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
+            "2101-2102": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.f"},
+            "2111-2112": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.f"},
+            "2131-2132": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.qp"},
+            "2401-2402": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
+            "2411-2462": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
+            "2501-2502": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
+            "3203-3280": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
+            "2601-2602": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
+            "5101-5113": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "5201-5206": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "5114-5117": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "5210-5218": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "5207-5209": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "6001-6004": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "8001-8142": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "9001-9004": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "11001-11003": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "15001-15002": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "2803-2826": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
+            "2463-2486": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
+            "4101-4124": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4221-4244": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4245-4268": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4301-4324": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4325-4348": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4349-4372": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4373-4396": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            # "2803-2826": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
+            "2827-2850": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
+            # "2463-2486": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
+            "2901-2924": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
+            # "4221-4244": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4269-4292": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4401-4424": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4425-4448": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4501-4524": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4525-4548": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4125-4148": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4149-4172": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4173-4196": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4197-4220": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4601-4624": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4625-4648": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4649-4672": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4673-4696": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4701-4724": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4725-4748": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4749-4772": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4773-4796": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4801-4824": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4825-4848": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4849-4872": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4873-4896": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "25025-25028": {"fck": 54, "γc": 1, "fyk": 400, "γs": 1, "type": "SLS.c"},
+            "25021-25024": {"fck": 89.9, "γc": 1.5, "fyk": 500, "γs": 1.15, "type": "ULS.f"},
+            "25001-25004": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "25031-25034": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "25011-25014": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "25015-25018": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "25041-25044": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "25045-25048": {"fck": 89.9, "γc": 1.2, "fyk": 500, "γs": 1, "type": "ULS.a"},
+            "4901-4924": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4925-4948": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4949-4972": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4973-4996": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            "4549-4572": {"fck": 89.9, "γc": 1.3, "fyk": 500, "γs": 1, "type": "ULS.e"},
+            '9301-9372': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
+            '9601-9660': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
+            '9101-9172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+            '9201-9224': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+            '9401-9460': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+            '109301-109372': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
+            '109601-109660': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
+            '109101-109172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+            '109201-109224': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+            '109401-109460': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+            '33101-33172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '35001-35048': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '133101-133172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '135001-135048': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '233101-233172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '235001-235048': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '333101-333172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '335001-335048': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '455101-455172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '455501-455564': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '555201-555272': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '555501-555564': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '655201-655272': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '655501-655564': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '755201-755272': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '755501-755564': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '55101-55172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '55301-55360': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '55401-55424': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '155101-155172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '155301-155360': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '155401-155424': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '255101-255172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '255301-255360': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '255401-255424': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '355101-355172': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '355301-355360': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '355401-355424': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '803101-803118': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+            '803201-803206': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+            '803301-803318': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
+            '903101-903118': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+            '903201-903206': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1.15, 'calculation_type': 'ULS.f'},
+            '903301-903318': {'fck': 54, 'γc': 1, 'fyk': 400, 'γs': 1, 'calculation_type': 'SLS.c'},
+            '815001-815009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '828001-828018': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '915001-915009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '928001-928018': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '1015001-1015009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '1028001-1028018': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '1115001-1115009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '1128001-1128018': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '851001-851006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '853001-853015': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '855701-855712': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '855001-855006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '951001-951006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '953001-953015': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '955701-955712': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '955001-955006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '1051001-1051006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '1053001-1053015': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '1055701-1055712': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '6551001-6551006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '1151001-1151006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '1153001-1153015': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '1155701-1155712': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '7551001-7551006': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '50001-50009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '150001-150009': {'fck': 89.9, 'γc': 1.2, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.a'},
+            '1256001-1256624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '1257001-1257624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '1258001-1258624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '1259001-1259624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '1260001-1260624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+            '1261001-1261624': {'fck': 89.9, 'γc': 1.5, 'fyk': 500, 'γs': 1, 'calculation_type': 'ULS.e'},
+        }
+    
+    
+        # call the calculate_beam_data function
+        results = calculate_beam_data(data)
+    
+        #Print the results
+        # print(results)
+    
+        # Set up paths and constants
+        # folder_path = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\03_Combinations\\07_CSV\\01_WS\\VDE_Normal_Cat_II'
+        comment_char = '!'
+    
+        # Load input data
+        # filename = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\03_Combinations\\07_CSV\\01_WS\\VDE_Normal_Cat_II\\beam_test.csv'
+        # filename = '\\\\io-ws-ccstore1\\03.Ansys\\02_5F\\02_Config2\\03_Combinations\\07_CSV\\01_WS\\VDE_Normal_Cat_II\\beam_combin0803101.csv'
+        # comment_char = '!'
+        columns = {
+            0: {'name': 'ElemNo', 'unit': '', 'formula': ''},
+            1: {'name': 'cas', 'unit': '', 'formula': ''},
+            2: {'name': 'N_OR', 'unit': 'N', 'formula': ''},
+            3: {'name': 'TY_OR', 'unit': 'N', 'formula': ''},
+            4: {'name': 'TZ_OR', 'unit': 'N', 'formula': ''},
+            5: {'name': 'N_EX', 'unit': 'N', 'formula': ''},
+            6: {'name': 'TY_EX', 'unit': 'N', 'formula': ''},
+            7: {'name': 'TZ_EX', 'unit': 'N', 'formula': ''},
+            8: {'name': 'TORS_OR', 'unit': 'N.m', 'formula': ''},
+            9: {'name': 'MZ_OR', 'unit': 'N.m', 'formula': ''},
+            10: {'name': 'MY_OR', 'unit': 'N.m', 'formula': ''},
+            11: {'name': 'TORS_EX', 'unit': 'N.m', 'formula': ''},
+            12: {'name': 'MZ_EX', 'unit': 'N.m', 'formula': ''},
+            13: {'name': 'MY_EX', 'unit': 'N.m', 'formula': ''},
+            14: {'name': 'A', 'unit': 'm2', 'formula': ''},
+            15: {'name': 'IZ', 'unit': 'm4', 'formula': ''},
+            16: {'name': 'IY', 'unit': 'm4', 'formula': ''}
+        }
+    
+        # Define beam element lists
+        deep_beam_elements = [260742, 260743, 260744, 260745, 260746, 260747, 260750, 260751, 260752, 260753, 260754,
+                              260755,
+                              260758, 260759, 260760, 260761, 260762, 260763, 260766, 260767, 260768, 260769, 260770,
+                              260771,
+                              260774, 260775, 260776, 260777, 260778, 260779, 260782, 260783, 260784, 260785, 260786,
+                              260787,
+                              260790, 260791, 260792, 260793, 260794, 260795, 260798, 260799, 260800, 260801, 260802,
+                              260803,
+                              260806, 260807, 260808, 260809, 260810, 260811, 260814, 260815, 260816, 260817, 260818,
+                              260819,
+                              260822, 260823, 260824, 260825, 260826, 260827, 260830, 260831, 260832, 260833, 260834,
+                              260835]
+    
+        shallow_beam_elements = [260721, 260722, 260723, 260724, 260725, 260726, 260727, 260728, 260729, 260730, 260731,
+                                 260732,
+                                 260733, 260734, 260735, 260736, 260737, 260738, 260739, 260740]
+    
+        # Find all CSV files in the folder
+        csv_files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if
+                     f.endswith('.csv') and 'beam_combin' in f]
+    
+        # Create a dictionary to hold the data
+        result_df = {
+            "Min Strut Y": [float("inf")] * (len(shallow_beam_elements) + len(deep_beam_elements)),
+            "Strut Y Cas": [""] * (len(shallow_beam_elements) + len(deep_beam_elements)),
+            "Min Strut Z": [float("inf")] * (len(shallow_beam_elements) + len(deep_beam_elements)),
+            "Strut Z Cas": [""] * (len(shallow_beam_elements) + len(deep_beam_elements)),
+            "Min Steel Y": [float("inf")] * (len(shallow_beam_elements) + len(deep_beam_elements)),
+            "Steel Y Cas": [""] * (len(shallow_beam_elements) + len(deep_beam_elements)),
+            "Min Steel Z": [float("inf")] * (len(shallow_beam_elements) + len(deep_beam_elements)),
+            "Steel Z Cas": [""] * (len(shallow_beam_elements) + len(deep_beam_elements))
+        }
+    
+        # Create the DataFrame
+        result_df = pd.DataFrame(result_df)
+    
+        # Add the "Element Number" column
+        result_df["Element Number"] = shallow_beam_elements + deep_beam_elements
+    
+        # Move the index to a column
+        result_df = result_df.reset_index()
+    
+        # Reorder the columns
+        result_df = result_df[
+            ["Element Number", "Min Strut Y", "Strut Y Cas", "Min Strut Z", "Strut Z Cas", "Min Steel Y", "Steel Y Cas",
+             "Min Steel Z", "Steel Z Cas"]]
+    
+        # Process each CSV file
+        for filename in csv_files:
+    
+            import re
+    
+            match = re.search(r'combina?(\d+)\.csv', filename, re.IGNORECASE)
+    
+            if match:
+                combination_number = int(match.group(1))
+                updated_data = update_data(combination_number, data, combination_numbers)
+                # print(combination_number, data)
+            else:
+                print("No combination number found in the filename.")
+    
+            # Reset the columns dictionary to the initial state
+            columns = {
+            0: {'name': 'ElemNo', 'unit': '', 'formula': ''},
+            1: {'name': 'cas', 'unit': '', 'formula': ''},
+            2: {'name': 'N_OR', 'unit': 'N', 'formula': ''},
+            3: {'name': 'TY_OR', 'unit': 'N', 'formula': ''},
+            4: {'name': 'TZ_OR', 'unit': 'N', 'formula': ''},
+            5: {'name': 'N_EX', 'unit': 'N', 'formula': ''},
+            6: {'name': 'TY_EX', 'unit': 'N', 'formula': ''},
+            7: {'name': 'TZ_EX', 'unit': 'N', 'formula': ''},
+            8: {'name': 'TORS_OR', 'unit': 'N.m', 'formula': ''},
+            9: {'name': 'MZ_OR', 'unit': 'N.m', 'formula': ''},
+            10: {'name': 'MY_OR', 'unit': 'N.m', 'formula': ''},
+            11: {'name': 'TORS_EX', 'unit': 'N.m', 'formula': ''},
+            12: {'name': 'MZ_EX', 'unit': 'N.m', 'formula': ''},
+            13: {'name': 'MY_EX', 'unit': 'N.m', 'formula': ''},
+            14: {'name': 'A', 'unit': 'm2', 'formula': ''},
+            15: {'name': 'IZ', 'unit': 'm4', 'formula': ''},
+            16: {'name': 'IY', 'unit': 'm4', 'formula': ''}
+            }
+    
+            # Read CSV file and filter for beam elements
+            df = read_csv_file(filename, comment_char, columns)
+    
+            # Calculate additional columns
+            beam_data = calculate_beam_data(data)
+    
+            # Filter the DF based on element numbers
+            df = filter_beam_type(df, deep_beam_elements, shallow_beam_elements)
+            deep_beam_df = add_columns(df[0], beam_data, deep_beam_elements, [], data, combination_number)
+            shallow_beam_df = add_columns(df[1], beam_data, [], shallow_beam_elements, data, combination_number)
+    
+            # Define the new columns to add to the dictionary
+            new_columns = [{'name': 'Nd', 'unit': 'N', 'formula': ''},
+                           {'name': 'Vy', 'unit': 'N', 'formula': ''},
+                           {'name': 'Vz', 'unit': 'N', 'formula': ''},
+                           {'name': 'T', 'unit': 'N.m', 'formula': ''},
+                           {'name': 'Sigma_cp', 'unit': 'MPa', 'formula': '\u03c3cp = Ned/A'},
+                           {'name': 'cot_theta', 'unit': '', 'formula': '[-]'},
+                           {'name': 'temp_cot_y_theta', 'unit': '', 'formula': '[-]'},
+                           {'name': 'cot_theta_y', 'unit': '', 'formula': 'cot(\u03b8) = 1.2 + 0.2 * \u03c3cp/fctm with \u03c3cp < 0 \n cot(\u03b8) = 1.2 + 0.9 * \u03c3cp/fctm \u2265 0'},
+                           {'name': 'temp_cot_z_theta', 'unit': '', 'formula': '[-]'},
+                           {'name': 'cot_theta_z', 'unit': '', 'formula': 'cot(\u03b8) = 1.2 + 0.2 * \u03c3cp/fctm \n cot(\u03b8) = 1.2 + 0.9 * \u03c3cp/fctm \u2265 0'},
+                           {'name': 'alpha_s_y', 'unit': 'deg', 'formula': '\xb0'},
+                           {'name': 'alpha_s_z', 'unit': 'deg', 'formula': '\xb0'},
+                           {'name': 'Ted_t_y', 'unit': 'cm²/m', 'formula': 'Ted/(2*Ak*fywd*cot(\u03b8))'},
+                           {'name': 'Ted_t_z', 'unit': 'cm²/m', 'formula': 'Ted/(2*Ak*fywd*cot(\u03b8))'},
+                           {'name': 'Ted_l_y', 'unit': 'cm²/m', 'formula': 'Ted/(2*Ak*fywd*cot(\u03b8))'},
+                           {'name': 'Ted_l_z', 'unit': 'cm²/m', 'formula': 'Ted/(2*Ak*fywd*cot(\u03b8)'},
+                           {'name': 'Trd_max_y', 'unit': 'kN.m', 'formula': '2*ν*\u03b1cw*fcd*Ak*tef*sin\u03b8*cos\u03b8'},
+                           {'name': 'Trd_max_z', 'unit': 'kN.m', 'formula': '2*ν*\u03b1cw*fcd*Ak*tef*sin\u03b8*cos\u03b8'},
+                           {'name': 'Asv_y', 'unit': 'cm²/m', 'formula': '2*(Astirrup-Ator_trans <Ted_t_y>)+Ayt'},
+                           {'name': 'Asv_z', 'unit': 'cm²/m', 'formula': '2*(Astirrup-Ator_trans <Ted_t_z>)+Azt'},
+                           {'name': 'Ash_y_EC2', 'unit': 'cm/m', 'formula': 'Ast,shear EC2 = VEd/(z*fyd*cot(\u03b8)'},
+                           {'name': 'Ash_z_EC2', 'unit': 'cm2/m', 'formula': 'Ast,shear EC2 = VEd/(z*fyd*cot(\u03b8)'},
+                           {'name': 'Vfd_y', 'unit': 'kN', 'formula': 'Vfd = 0.068*h*levy*(1 - cot(\u03b8)/4)*fcd with \u03c3cp < 0 \n Vfd = 0.068*h*levy*(1 - 0.36/cot(\u03b8)*fcd with \u03c3cp \u2265 0'},
+                           {'name': 'Vfd_z', 'unit': 'kN', 'formula': 'Vfd = 0.068*bw*levz*(1 - cot(\u03b8)/4)*fcd with \u03c3cp < 0 \n Vfd = 0.068*bw*levz*(1 - 0.36/cot(\u03b8)*fcd with \u03c3cp \u2265 0'},
+                           {'name': 'Ash_y_ITER', 'unit': 'cm²/m', 'formula': 'max(0;(Vy-Vfd_y)/(z*fywd*cot(\u03b8)))'},
+                           {'name': 'Ash_z_ITER', 'unit': 'cm²/m', 'formula': 'max(0;(Vz-Vfd_z)/(z*fywd*cot(\u03b8)))'},
+                           {'name': 'steel_margin_y', 'unit': '', 'formula': 'Asv_y/max(Ash_y_EC2,Ash_y_ITER)'},
+                           {'name': 'steel_margin_z', 'unit': '', 'formula': 'Asv_z/max(Ash_z_EC2,Ash_z_ITER'},
+                           {'name': 'Vrdmax_y_EC2', 'unit': 'kN', 'formula': '\u03b1cw*ν1*h*levy*fcd/(cot\u03b8 + 1/cot\u03b8)'},
+                           {'name': 'Vrdmax_z_EC2', 'unit': 'kN', 'formula': '\u03b1cw*ν1*bw*levz*fcd/(cot\u03b8 + 1/cot\u03b8)'},
+                           {'name': 'Vrdmax_y_ITER', 'unit': 'kN', 'formula': '\u03b1cw*ν1*h*levy*fcd/(cot\u03b8 + 1/cot\u03b8)'},
+                           {'name': 'Vrdmax_z_ITER', 'unit': 'kN', 'formula': '\u03b1cw*ν1*bw*levz*fcd/(cot\u03b8 + 1/cot\u03b8)'},
+                           {'name': 'strut_margin_y', 'unit': '', 'formula': '1/(Ted/Trd+Ved/Vrd)'},
+                           {'name': 'strut_margin_z', 'unit': '', 'formula': '1/(Ted/Trd+Ved/Vrd)'},
+                           {'name': 'safety_margin_y', 'unit': '', 'formula': 'Min (steel_margin_y;strut_margin_y)'},
+                           {'name': 'safety_margin_z', 'unit': '', 'formula': 'Min (steel_margin_z;strut_margin_z)'},
+                           ]
+            # Update the columns dictionary
+            # columns = columns.copy()
+            columns_out = update_columns(columns, new_columns)
+    
+            # Write results to output files with suffix
+            output_filename_deep = filename.replace('.csv', '_output_deep.tsv')
+            output_filename_shallow = filename.replace('.csv', '_output_shallow.tsv')
+            write_dataframe_to_tsv(deep_beam_df, output_filename_deep, columns_out)
+            write_dataframe_to_tsv(shallow_beam_df, output_filename_shallow, columns_out)
+    
+            # Iterate over each row in result_df
+            for i, row in result_df.iterrows():
+                elem_no = row["Element Number"]
+    
+                # Check if the element is in the shallow beam dataframe
+                if elem_no in shallow_beam_df["ElemNo"].tolist():
+                    # Get the corresponding row in shallow_beam_df
+                    shallow_row = shallow_beam_df.loc[shallow_beam_df["ElemNo"] == elem_no]
+    
+                    # Compare the strut margin values
+                    if shallow_row["strut_margin_y"].item() < row["Min Strut Y"]:
+                        result_df.at[i, "Min Strut Y"] = shallow_row["strut_margin_y"].item()
+                        result_df.at[i, "Strut Y Cas"] = shallow_row["cas"].item()
+    
+                    if shallow_row["strut_margin_z"].item() < row["Min Strut Z"]:
+                        result_df.at[i, "Min Strut Z"] = shallow_row["strut_margin_z"].item()
+                        result_df.at[i, "Strut Z Cas"] = shallow_row["cas"].item()
+    
+                    if shallow_row["steel_margin_y"].item() < row["Min Steel Y"]:
+                        result_df.at[i, "Min Steel Y"] = shallow_row["steel_margin_y"].item()
+                        result_df.at[i, "Steel Y Cas"] = shallow_row["cas"].item()
+    
+                    if shallow_row["steel_margin_z"].item() < row["Min Steel Z"]:
+                        result_df.at[i, "Min Steel Z"] = shallow_row["steel_margin_z"].item()
+                        result_df.at[i, "Steel Z Cas"] = shallow_row["cas"].item()
+    
+                # Check if the element is in the deep beam dataframe
+                elif elem_no in deep_beam_df["ElemNo"].tolist():
+                    # Get the corresponding row in deep_beam_df
+                    deep_row = deep_beam_df.loc[deep_beam_df["ElemNo"] == elem_no]
+    
+                    # Compare the strut margin values
+                    if deep_row["strut_margin_y"].item() < row["Min Strut Y"]:
+                        result_df.at[i, "Min Strut Y"] = deep_row["strut_margin_y"].item()
+                        result_df.at[i, "Strut Y Cas"] = deep_row["cas"].item()
+    
+                    if deep_row["strut_margin_z"].item() < row["Min Strut Z"]:
+                        result_df.at[i, "Min Strut Z"] = deep_row["strut_margin_z"].item()
+                        result_df.at[i, "Strut Z Cas"] = deep_row["cas"].item()
+    
+                    if deep_row["steel_margin_y"].item() < row["Min Steel Y"]:
+                        result_df.at[i, "Min Steel Y"] = deep_row["steel_margin_y"].item()
+                        result_df.at[i, "Steel Y Cas"] = deep_row["cas"].item()
+    
+                    if deep_row["steel_margin_z"].item() < row["Min Steel Z"]:
+                        result_df.at[i, "Min Steel Z"] = deep_row["steel_margin_z"].item()
+                        result_df.at[i, "Steel Z Cas"] = deep_row["cas"].item()
+        print(result_df)
+    
+        col_result = {
+            0: {'name': 'Element Number', 'unit': '', 'formula': ''},
+            1: {'name': 'Min Strut Y', 'unit': '', 'formula': ''},
+            2: {'name': 'Strut Y Cas', 'unit': '', 'formula': ''},
+            3: {'name': 'Min Strut Z', 'unit': '', 'formula': ''},
+            4: {'name': 'Strut Z Cas', 'unit': '', 'formula': ''},
+            5: {'name': 'Min Steel Y', 'unit': '', 'formula': ''},
+            6: {'name': 'Steel Y Cas', 'unit': '', 'formula': ''},
+            7: {'name': 'Min Steel Z', 'unit': '', 'formula': ''},
+            8: {'name': 'Steel Z Cas', 'unit': '', 'formula': ''},
+        }
+    
+        # Calculate the minimum margins and associated load case
+        min_strut_y = result_df['Min Strut Y'].min()
+        strut_y_cas = result_df['Strut Y Cas'][result_df['Min Strut Y'].idxmin()]
+        min_strut_z = result_df['Min Strut Z'].min()
+        strut_z_cas = result_df['Strut Z Cas'][result_df['Min Strut Z'].idxmin()]
+        min_steel_y = result_df['Min Steel Y'].min()
+        steel_y_cas = result_df['Steel Y Cas'][result_df['Min Steel Y'].idxmin()]
+        min_steel_z = result_df['Min Steel Z'].min()
+        steel_z_cas = result_df['Steel Z Cas'][result_df['Min Steel Z'].idxmin()]
+    
+        # Create a dictionary with the minimum margins and associated load case
+        min_margins = {
+            'Element Number': '',
+            'Min Strut Y': min_strut_y,
+            'Strut Y Cas': strut_y_cas,
+            'Min Strut Z': min_strut_z,
+            'Strut Z Cas': strut_z_cas,
+            'Min Steel Y': min_steel_y,
+            'Steel Y Cas': steel_y_cas,
+            'Min Steel Z': min_steel_z,
+            'Steel Z Cas': steel_z_cas
+        }
+    
+        # Create a DataFrame from the dictionary
+        min_margins_df = pd.DataFrame([min_margins])
+    
+        # Concatenate the min_margins_df DataFrame with the result_df DataFrame
+        result_df = pd.concat([min_margins_df, result_df]).reset_index(drop=True)
+    
+        output_filename_envelope = 'test_envelope.tsv'
+        write_dataframe_to_tsv(result_df, os.path.join(folder_path,output_filename_envelope), col_result)
 
 if __name__ == '__main__':
     main()
